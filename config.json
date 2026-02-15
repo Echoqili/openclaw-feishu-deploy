@@ -5,7 +5,10 @@
   "feishuAppId": "YOUR_FEISHU_APP_ID_HERE",
   "feishuAppSecret": "YOUR_FEISHU_APP_SECRET_HERE",
   "feishuChatIds": ["oc_your_chat_id_here"],
-  "newsLimit": 30,
+  "newsLimit": 50,
+  "selectedLimit": 20,
   "outputDir": "./output",
-  "cronExpression": "0 10 * * *"
+  "historyDir": "./history",
+  "maxHistoryDays": 7,
+  "cronExpression": "0 10,22 * * *"
 }
