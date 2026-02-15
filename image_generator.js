@@ -1,0 +1,435 @@
+/**
+ * 图片生成模块
+ * 使用 Canvas 生成新闻摘要图片
+ */
+
+const { createCanvas, loadImage, registerFont } = require('canvas');
+const fs = require('fs').promises;
+const path = require('path');
+
+class ImageGenerator {
+  constructor(config = {}) {
+    this.width = config.width || 1080;
+    this.height = config.height || 1920;
+    this.outputDir = config.outputDir || './output';
+    this.fontPath = config.fontPath || null;
+    
+    // 颜色主题
+    this.colors = {
+      background: '#1a1a2e',
+      primary: '#16213e',
+      secondary: '#0f3460',
+      accent: '#e94560',
+      text: '#ffffff',
+      textSecondary: '#a0a0a0',
+      categoryColors: {
+        '科技': '#4CAF50',
+        '财经': '#2196F3',
+        '体育': '#FF9800',
+        '娱乐': '#9C27B0',
+        '政治': '#F44336',
+        '社会': '#795548',
+        '国际': '#3F51B5',
+        '教育': '#009688',
+        '健康': '#4DB6AC',
+        '汽车': '#607D8B',
+        '房产': '#8D6E63',
+        '军事': '#D32F2F',
+        '文化': '#BA68C8',
+        '旅游': '#4DD0E1',
+        '美食': '#FFB74D',
+        '其他': '#9E9E9E'
+      }
+    };
+  }
+
+  /**
+   * 初始化字体
+   */
+  async initFonts() {
+    try {
+      // 尝试加载中文字体
+      const possibleFonts = [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+        'C:\\Windows\\Fonts\\msyh.ttc',
+        '/System/Library/Fonts/PingFang.ttc'
+      ];
+
+      for (const fontPath of possibleFonts) {
+        try {
+          await fs.access(fontPath);
+          registerFont(fontPath, { family: 'CustomFont' });
+          console.log(`加载字体成功: ${fontPath}`);
+          return;
+        } catch (e) {
+          // 字体不存在，继续尝试下一个
+        }
+      }
+      
+      console.log('使用默认字体');
+    } catch (error) {
+      console.log('字体加载失败，使用默认字体:', error.message);
+    }
+  }
+
+  /**
+   * 生成新闻摘要图片
+   * @param {Object} summaryData - 摘要数据
+   * @returns {string} 图片文件路径
+   */
+  async generateNewsImage(summaryData) {
+    try {
+      await this.initFonts();
+      
+      // 确保输出目录存在
+      await fs.mkdir(this.outputDir, { recursive: true });
+
+      const canvas = createCanvas(this.width, this.height);
+      const ctx = canvas.getContext('2d');
+
+      // 绘制背景
+      this.drawBackground(ctx);
+
+      // 绘制标题区域
+      this.drawHeader(ctx, summaryData);
+
+      // 绘制统计信息
+      this.drawStats(ctx, summaryData.stats);
+
+      // 绘制分类新闻
+      this.drawCategoryNews(ctx, summaryData.groupedNews);
+
+      // 绘制底部信息
+      this.drawFooter(ctx);
+
+      // 保存图片
+      const filename = `news-${Date.now()}.png`;
+      const filepath = path.join(this.outputDir, filename);
+      const buffer = canvas.toBuffer('image/png');
+      await fs.writeFile(filepath, buffer);
+
+      console.log(`图片生成成功: ${filepath}`);
+      return filepath;
+    } catch (error) {
+      console.error('生成图片失败:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * 绘制背景
+   */
+  drawBackground(ctx) {
+    // 渐变背景
+    const gradient = ctx.createLinearGradient(0, 0, 0, this.height);
+    gradient.addColorStop(0, this.colors.background);
+    gradient.addColorStop(0.5, this.colors.primary);
+    gradient.addColorStop(1, this.colors.secondary);
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    // 添加装饰性元素
+    ctx.fillStyle = 'rgba(233, 69, 96, 0.1)';
+    ctx.beginPath();
+    ctx.arc(this.width - 100, 200, 300, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(33, 150, 243, 0.1)';
+    ctx.beginPath();
+    ctx.arc(100, this.height - 200, 250, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /**
+   * 绘制标题区域
+   */
+  drawHeader(ctx, summaryData) {
+    const headerY = 60;
+
+    // 主标题
+    ctx.fillStyle = this.colors.text;
+    ctx.font = 'bold 48px CustomFont, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('📊 今日新闻摘要', this.width / 2, headerY);
+
+    // 日期
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    });
+    
+    ctx.fillStyle = this.colors.textSecondary;
+    ctx.font = '24px CustomFont, Arial, sans-serif';
+    ctx.fillText(dateStr, this.width / 2, headerY + 50);
+  }
+
+  /**
+   * 绘制统计信息
+   */
+  drawStats(ctx, stats) {
+    const startY = 170;
+    const cardWidth = 240;
+    const cardHeight = 100;
+    const gap = 30;
+    const startX = (this.width - (cardWidth * 3 + gap * 2)) / 2;
+
+    const statItems = [
+      { label: '总计新闻', value: stats.total, color: this.colors.accent },
+      { label: '重要新闻', value: stats.highImportance, color: '#FF9800' },
+      { label: '正面新闻', value: stats.positiveNews, color: '#4CAF50' }
+    ];
+
+    statItems.forEach((item, index) => {
+      const x = startX + (cardWidth + gap) * index;
+      
+      // 卡片背景
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      this.roundRect(ctx, x, startY, cardWidth, cardHeight, 10);
+      
+      // 数值
+      ctx.fillStyle = item.color;
+      ctx.font = 'bold 36px CustomFont, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(item.value, x + cardWidth / 2, startY + 45);
+      
+      // 标签
+      ctx.fillStyle = this.colors.textSecondary;
+      ctx.font = '20px CustomFont, Arial, sans-serif';
+      ctx.fillText(item.label, x + cardWidth / 2, startY + 75);
+    });
+  }
+
+  /**
+   * 绘制分类新闻
+   */
+  drawCategoryNews(ctx, groupedNews) {
+    let currentY = 320;
+    const padding = 40;
+    const cardWidth = this.width - padding * 2;
+
+    // 限制显示的分类数量
+    const categories = Object.entries(groupedNews).slice(0, 6);
+
+    categories.forEach(([category, newsList], index) => {
+      // 检查是否超出画布
+      if (currentY + 200 > this.height - 100) return;
+
+      // 分类卡片背景
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      this.roundRect(ctx, padding, currentY, cardWidth, 180, 10);
+
+      // 分类标题背景
+      const categoryColor = this.colors.categoryColors[category] || this.colors.categoryColors['其他'];
+      ctx.fillStyle = categoryColor;
+      this.roundRect(ctx, padding, currentY, cardWidth, 40, 10, true, false);
+
+      // 分类标题
+      ctx.fillStyle = this.colors.text;
+      ctx.font = 'bold 22px CustomFont, Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`【${category}】(${newsList.length}条)`, padding + 20, currentY + 28);
+
+      // 新闻列表
+      const maxNews = Math.min(newsList.length, 3);
+      for (let i = 0; i < maxNews; i++) {
+        const news = newsList[i];
+        const newsY = currentY + 60 + i * 38;
+
+        // 序号
+        ctx.fillStyle = categoryColor;
+        ctx.font = 'bold 18px CustomFont, Arial, sans-serif';
+        ctx.fillText(`${i + 1}.`, padding + 20, newsY);
+
+        // 标题
+        ctx.fillStyle = this.colors.text;
+        ctx.font = '18px CustomFont, Arial, sans-serif';
+        const maxWidth = cardWidth - 60;
+        const title = this.truncateText(ctx, news.title, maxWidth);
+        ctx.fillText(title, padding + 50, newsY);
+
+        // 摘要（如果有）
+        if (i === 0 && news.classification?.summary) {
+          ctx.fillStyle = this.colors.textSecondary;
+          ctx.font = '14px CustomFont, Arial, sans-serif';
+          const summary = this.truncateText(ctx, news.classification.summary, maxWidth - 10);
+          ctx.fillText(summary, padding + 50, newsY + 20);
+        }
+      }
+
+      currentY += 200;
+    });
+  }
+
+  /**
+   * 绘制底部信息
+   */
+  drawFooter(ctx) {
+    ctx.fillStyle = this.colors.textSecondary;
+    ctx.font = '16px CustomFont, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('数据来源: ZAKER | 由 AI 自动生成', this.width / 2, this.height - 40);
+  }
+
+  /**
+   * 绘制圆角矩形
+   */
+  roundRect(ctx, x, y, width, height, radius, fillTop = true, fillBottom = true) {
+    ctx.beginPath();
+    
+    if (fillTop) {
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    } else {
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + width, y);
+    }
+    
+    if (fillBottom) {
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    } else {
+      ctx.lineTo(x + width, y + height);
+      ctx.lineTo(x, y + height);
+    }
+    
+    if (fillTop) {
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+    
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /**
+   * 截断文本
+   */
+  truncateText(ctx, text, maxWidth) {
+    if (!text) return '';
+    
+    let truncated = text;
+    let width = ctx.measureText(truncated).width;
+    
+    while (width > maxWidth && truncated.length > 0) {
+      truncated = truncated.substring(0, truncated.length - 1);
+      width = ctx.measureText(truncated).width;
+    }
+    
+    if (truncated !== text) {
+      truncated += '...';
+    }
+    
+    return truncated;
+  }
+
+  /**
+   * 生成简单的文字图片（备用方案）
+   * @param {string} text - 文字内容
+   * @returns {string} 图片路径
+   */
+  async generateSimpleTextImage(text) {
+    const canvas = createCanvas(800, 400);
+    const ctx = canvas.getContext('2d');
+
+    // 背景
+    ctx.fillStyle = this.colors.primary;
+    ctx.fillRect(0, 0, 800, 400);
+
+    // 文字
+    ctx.fillStyle = this.colors.text;
+    ctx.font = '24px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    
+    // 自动换行
+    const lines = this.wrapText(ctx, text, 750);
+    const lineHeight = 35;
+    const startY = (400 - lines.length * lineHeight) / 2;
+    
+    lines.forEach((line, index) => {
+      ctx.fillText(line, 400, startY + index * lineHeight);
+    });
+
+    // 保存
+    const filename = `text-${Date.now()}.png`;
+    const filepath = path.join(this.outputDir, filename);
+    const buffer = canvas.toBuffer('image/png');
+    await fs.writeFile(filepath, buffer);
+
+    return filepath;
+  }
+
+  /**
+   * 文字换行
+   */
+  wrapText(ctx, text, maxWidth) {
+    const words = text.split('');
+    const lines = [];
+    let currentLine = '';
+
+    words.forEach(char => {
+      const testLine = currentLine + char;
+      const metrics = ctx.measureText(testLine);
+      
+      if (metrics.width > maxWidth && currentLine !== '') {
+        lines.push(currentLine);
+        currentLine = char;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines;
+  }
+}
+
+// 导出模块
+module.exports = ImageGenerator;
+
+// 测试代码
+if (require.main === module) {
+  const generator = new ImageGenerator();
+  
+  const testData = {
+    stats: {
+      total: 50,
+      highImportance: 10,
+      positiveNews: 15
+    },
+    groupedNews: {
+      '科技': [
+        { title: '苹果发布最新AI芯片，性能提升50%', classification: { summary: '苹果新芯片集成强大AI能力' } },
+        { title: '特斯拉自动驾驶再升级', classification: {} },
+        { title: 'OpenAI推出GPT-5模型', classification: {} }
+      ],
+      '财经': [
+        { title: 'A股市场今日大涨', classification: { summary: '沪指上涨2.5%' } },
+        { title: '央行降准0.5个百分点', classification: {} }
+      ],
+      '体育': [
+        { title: '中国男足世界杯预选赛获胜', classification: {} }
+      ]
+    }
+  };
+
+  generator.generateNewsImage(testData)
+    .then(filepath => {
+      console.log('测试图片生成成功:', filepath);
+    })
+    .catch(err => {
+      console.error('测试失败:', err);
+    });
+}
