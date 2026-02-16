@@ -173,15 +173,14 @@ class ImageGenerator {
    */
   drawStats(ctx, stats) {
     const startY = 170;
-    const cardWidth = 240;
+    const cardWidth = 350;
     const cardHeight = 100;
     const gap = 30;
-    const startX = (this.width - (cardWidth * 3 + gap * 2)) / 2;
+    const startX = (this.width - (cardWidth * 2 + gap)) / 2;
 
     const statItems = [
       { label: '总计新闻', value: stats.total, color: this.colors.accent },
-      { label: '重要新闻', value: stats.highImportance, color: '#FF9800' },
-      { label: '正面新闻', value: stats.positiveNews, color: '#4CAF50' }
+      { label: '重要新闻', value: stats.highImportance, color: '#FF9800' }
     ];
 
     statItems.forEach((item, index) => {
@@ -236,9 +235,10 @@ class ImageGenerator {
 
       // 新闻列表
       const maxNews = Math.min(newsList.length, 3);
+      let yOffset = 0;
       for (let i = 0; i < maxNews; i++) {
         const news = newsList[i];
-        const newsY = currentY + 60 + i * 38;
+        const newsY = currentY + 60 + i * 38 + yOffset;
 
         // 序号
         ctx.fillStyle = categoryColor;
@@ -252,16 +252,17 @@ class ImageGenerator {
         const title = this.truncateText(ctx, news.title, maxWidth);
         ctx.fillText(title, padding + 50, newsY);
 
-        // 摘要（如果有）
-        if (i === 0 && news.classification?.summary) {
+        // 摘要（每条新闻都显示）
+        if (news.classification?.summary) {
           ctx.fillStyle = this.colors.textSecondary;
           ctx.font = '14px CustomFont, Arial, sans-serif';
           const summary = this.truncateText(ctx, news.classification.summary, maxWidth - 10);
-          ctx.fillText(summary, padding + 50, newsY + 20);
+          ctx.fillText(summary, padding + 50, newsY + 18);
+          yOffset += 20; // 增加偏移量
         }
       }
 
-      currentY += 200;
+      currentY += 200 + yOffset;
     });
   }
 

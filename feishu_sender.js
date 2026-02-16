@@ -248,39 +248,50 @@ class FeishuSender {
       {
         tag: 'div',
         text: {
-          content: `📊 **今日新闻摘要**\n共抓取 ${summaryData.stats.total} 条新闻`,
+          content: `📊 **今日新闻摘要**\n共精选 ${summaryData.stats.total} 条新闻`,
           tag: 'lark_md'
         }
       },
       {
         tag: 'hr'
-      },
-      {
-        tag: 'div',
-        fields: [
-          {
-            is_short: true,
-            text: {
-              content: `**重要新闻**\n${summaryData.stats.highImportance} 条`,
-              tag: 'lark_md'
-            }
-          },
-          {
-            is_short: true,
-            text: {
-              content: `**正面新闻**\n${summaryData.stats.positiveNews} 条`,
-              tag: 'lark_md'
-            }
-          }
-        ]
       }
     ];
 
-    // 添加分类新闻（带超链接）
-    const categories = Object.entries(summaryData.groupedNews).slice(0, 5);
+    // 收集已显示的新闻标题（用于排除重复）
+    const shownTitles = new Set();
+
+    // 添加重要新闻（带链接）
+    if (summaryData.importantNews && summaryData.importantNews.length > 0) {
+      const importantText = summaryData.importantNews.map((news, index) => {
+        shownTitles.add(news.title);
+        if (news.link) {
+          return `${index + 1}. <a href="${news.link}">${news.title}</a>`;
+        }
+        return `${index + 1}. ${news.title}`;
+      }).join('\n');
+      
+      elements.push({
+        tag: 'div',
+        text: {
+          content: `🔴 **重要新闻** (${summaryData.stats.highImportance}条)\n${importantText}`,
+          tag: 'lark_md'
+        }
+      });
+    }
+
+    elements.push({
+      tag: 'hr'
+    });
+
+    // 添加分类新闻（排除已显示的重要新闻）
+    const categories = Object.entries(summaryData.groupedNews);
     categories.forEach(([category, newsList]) => {
-      const newsText = newsList.slice(0, 3).map((news, index) => {
-        // 使用飞书支持的链接格式
+      // 过滤掉已显示的新闻
+      const filteredNews = newsList.filter(n => !shownTitles.has(n.title));
+      if (filteredNews.length === 0) return;
+      
+      const newsText = filteredNews.map((news, index) => {
+        shownTitles.add(news.title);
         if (news.link) {
           return `${index + 1}. <a href="${news.link}">${news.title}</a>`;
         }
@@ -290,7 +301,7 @@ class FeishuSender {
       elements.push({
         tag: 'div',
         text: {
-          content: `**【${category}】**(${newsList.length}条)\n${newsText}`,
+          content: `**【${category}】**(${filteredNews.length}条)\n${newsText}`,
           tag: 'lark_md'
         }
       });

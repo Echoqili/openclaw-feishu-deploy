@@ -170,7 +170,7 @@ class NewsClassifier {
    */
   async generateDailySummary(classifiedNews) {
     try {
-      // 按分类分组
+      // 按分类分组（所有新闻都放入分类）
       const groupedNews = {};
       classifiedNews.forEach(news => {
         const category = news.classification?.category || '其他';
@@ -192,6 +192,14 @@ class NewsClassifier {
         negativeNews: classifiedNews.filter(n => n.classification?.sentiment === '负面').length
       };
 
+      // 提取重要新闻（所有高重要度的新闻）
+      const importantNews = classifiedNews
+        .filter(n => n.classification?.importance === '高');
+
+      // 提取正面新闻（所有正面新闻，统计用）
+      const positiveNews = classifiedNews
+        .filter(n => n.classification?.sentiment === '正面');
+
       // 生成摘要文本
       let summaryText = `📊 今日新闻摘要\n`;
       summaryText += `共抓取 ${stats.total} 条新闻\n\n`;
@@ -208,7 +216,9 @@ class NewsClassifier {
 
       return {
         stats,
-        groupedNews,
+        groupedNews,  // 保留所有分类新闻
+        importantNews,
+        positiveNews,
         summaryText,
         timestamp: new Date().toISOString()
       };
