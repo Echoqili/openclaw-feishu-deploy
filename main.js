@@ -19,7 +19,8 @@ class NewsBot {
     this.classifier = new NewsClassifier({
       apiKey: config.volcanoApiKey,
       apiSecret: config.volcanoApiSecret,
-      endpoint: config.volcanoEndpoint
+      endpoint: config.volcanoEndpoint,
+      model: config.volcanoModel
     });
     this.imageGenerator = new ImageGenerator({
       outputDir: config.outputDir || './output'

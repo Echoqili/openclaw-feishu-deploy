@@ -2,13 +2,14 @@
   "volcanoApiKey": "YOUR_VOLCANO_API_KEY_HERE",
   "volcanoApiSecret": "",
   "volcanoEndpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+  "volcanoModel": "ep-20260213222914-h5r4d",
   "feishuAppId": "YOUR_FEISHU_APP_ID_HERE",
   "feishuAppSecret": "YOUR_FEISHU_APP_SECRET_HERE",
   "feishuChatIds": ["oc_your_chat_id_here"],
   "newsLimit": 50,
-  "selectedLimit": 20,
+  "selectedLimit": 30,
   "outputDir": "./output",
   "historyDir": "./history",
   "maxHistoryDays": 7,
-  "cronExpression": "0 10,22 * * *"
+  "cronExpression": "30 10,22 * * *"
 }

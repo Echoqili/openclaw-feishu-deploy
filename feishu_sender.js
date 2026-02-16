@@ -276,17 +276,21 @@ class FeishuSender {
       }
     ];
 
-    // 添加分类新闻
+    // 添加分类新闻（带超链接）
     const categories = Object.entries(summaryData.groupedNews).slice(0, 5);
     categories.forEach(([category, newsList]) => {
-      const newsText = newsList.slice(0, 3).map((news, index) => 
-        `${index + 1}. ${news.title}`
-      ).join('\n');
+      const newsText = newsList.slice(0, 3).map((news, index) => {
+        // 使用飞书支持的链接格式
+        if (news.link) {
+          return `${index + 1}. <a href="${news.link}">${news.title}</a>`;
+        }
+        return `${index + 1}. ${news.title}`;
+      }).join('\n');
 
       elements.push({
         tag: 'div',
         text: {
-          content: `**【${category}】**\n${newsText}`,
+          content: `**【${category}】**(${newsList.length}条)\n${newsText}`,
           tag: 'lark_md'
         }
       });
@@ -296,6 +300,20 @@ class FeishuSender {
     elements.push(
       {
         tag: 'hr'
+      },
+      {
+        tag: 'action',
+        actions: [
+          {
+            tag: 'button',
+            text: {
+              content: '📰 查看更多新闻',
+              tag: 'plain_text'
+            },
+            type: 'primary',
+            url: 'https://www.myzaker.com/'
+          }
+        ]
       },
       {
         tag: 'note',

@@ -10,7 +10,7 @@ class NewsClassifier {
     this.apiKey = config.apiKey || process.env.VOLCANO_API_KEY || 'YOUR_VOLCANO_API_KEY_HERE';
     this.apiSecret = config.apiSecret || process.env.VOLCANO_API_SECRET || '';
     this.endpoint = config.endpoint || 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
-    this.model = config.model || 'glm-4.7';
+    this.model = config.model || 'ep-20260213222914-h5r4d';
     
     // 预定义新闻分类
     this.categories = [

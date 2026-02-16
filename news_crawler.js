@@ -48,9 +48,33 @@ class NewsCrawler {
                      $item.find('a').attr('title') || 
                      $item.text().trim();
         
-        // 提取链接
-        const link = $item.find('a').attr('href') || '';
-        const fullLink = link.startsWith('http') ? link : `${this.baseUrl}${link}`;
+        // 提取链接 - 优化链接提取逻辑
+        let link = '';
+        const $links = $item.find('a');
+        $links.each((i, el) => {
+          const href = $(el).attr('href') || '';
+          // 优先选择包含 article 或 news 的链接
+          if (href.includes('/article/') || href.includes('/news/')) {
+            link = href;
+            return false; // 找到就停止
+          }
+          // 其次选择完整的URL
+          if (!link && href.startsWith('http')) {
+            link = href;
+          }
+        });
+        
+        // 规范化链接
+        let fullLink = '';
+        if (link) {
+          if (link.startsWith('http://') || link.startsWith('https://')) {
+            fullLink = link;
+          } else if (link.startsWith('//')) {
+            fullLink = 'https:' + link;
+          } else if (link.startsWith('/')) {
+            fullLink = this.baseUrl + link;
+          }
+        }
         
         // 提取描述
         const description = $item.find('.desc, .summary, [class*="desc"], p').text().trim();
@@ -62,13 +86,19 @@ class NewsCrawler {
         const image = $item.find('img').attr('src') || 
                      $item.find('img').attr('data-src') || '';
 
-        if (title && title.length > 5) {
+        // 只保留有有效链接的新闻
+        if (title && title.length > 5 && fullLink && fullLink !== this.baseUrl) {
+          // 提取发布时间
+          const timeText = $item.find('.time, .date, [class*="time"], [class*="date"]').text().trim();
+          const publishTime = this.parsePublishTime(timeText);
+          
           newsList.push({
             title,
             link: fullLink,
             description,
             source,
             image,
+            publishTime: publishTime || new Date().toISOString(),
             crawlTime: new Date().toISOString()
           });
         }
@@ -92,6 +122,7 @@ class NewsCrawler {
               description: '',
               source: 'ZAKER',
               image: '',
+              publishTime: new Date().toISOString(),
               crawlTime: new Date().toISOString()
             });
           }
@@ -209,6 +240,69 @@ class NewsCrawler {
       console.error('综合抓取失败:', error.message);
       throw error;
     }
+  }
+
+  /**
+   * 解析发布时间
+   * @param {string} timeText - 时间文本
+   * @returns {string} ISO时间字符串
+   */
+  parsePublishTime(timeText) {
+    if (!timeText) return null;
+    
+    const now = new Date();
+    
+    // 处理相对时间：X分钟前、X小时前
+    const minutesMatch = timeText.match(/(\d+)\s*分钟前/);
+    if (minutesMatch) {
+      const minutes = parseInt(minutesMatch[1]);
+      return new Date(now - minutes * 60 * 1000).toISOString();
+    }
+    
+    const hoursMatch = timeText.match(/(\d+)\s*小时前/);
+    if (hoursMatch) {
+      const hours = parseInt(hoursMatch[1]);
+      return new Date(now - hours * 60 * 60 * 1000).toISOString();
+    }
+    
+    // 处理"今天 HH:MM"
+    const todayMatch = timeText.match(/今天\s*(\d{1,2}):(\d{2})/);
+    if (todayMatch) {
+      const date = new Date(now);
+      date.setHours(parseInt(todayMatch[1]), parseInt(todayMatch[2]), 0, 0);
+      return date.toISOString();
+    }
+    
+    // 处理"昨天 HH:MM"
+    const yesterdayMatch = timeText.match(/昨天\s*(\d{1,2}):(\d{2})/);
+    if (yesterdayMatch) {
+      const date = new Date(now - 24 * 60 * 60 * 1000);
+      date.setHours(parseInt(yesterdayMatch[1]), parseInt(yesterdayMatch[2]), 0, 0);
+      return date.toISOString();
+    }
+    
+    // 处理"MM-DD HH:MM"
+    const dateMatch = timeText.match(/(\d{1,2})-(\d{1,2})\s*(\d{1,2}):(\d{2})/);
+    if (dateMatch) {
+      const date = new Date(now.getFullYear(), parseInt(dateMatch[1]) - 1, parseInt(dateMatch[2]));
+      date.setHours(parseInt(dateMatch[3]), parseInt(dateMatch[4]), 0, 0);
+      return date.toISOString();
+    }
+    
+    // 处理"YYYY-MM-DD HH:MM"
+    const fullMatch = timeText.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s*(\d{1,2}):(\d{2})/);
+    if (fullMatch) {
+      const date = new Date(
+        parseInt(fullMatch[1]),
+        parseInt(fullMatch[2]) - 1,
+        parseInt(fullMatch[3]),
+        parseInt(fullMatch[4]),
+        parseInt(fullMatch[5])
+      );
+      return date.toISOString();
+    }
+    
+    return null;
   }
 
   /**
