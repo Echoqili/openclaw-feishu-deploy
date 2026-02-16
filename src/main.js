@@ -312,7 +312,7 @@ async function main() {
 
   // 从配置文件加载（如果存在）
   try {
-    const configPath = path.join(__dirname, 'config.json');
+    const configPath = path.join(__dirname, '../config/config.json');
     const configFile = await fs.readFile(configPath, 'utf-8');
     const fileConfig = JSON.parse(configFile);
     Object.assign(config, fileConfig);

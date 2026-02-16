@@ -79,7 +79,7 @@ pm2 start main.js --name news-bot
 ### 可选配置
 
 - `newsLimit`: 新闻数量限制（默认 30）
-- `cronExpression`: 定时任务时间（默认每天 10:00）
+- `cronExpression`: 定时任务时间（默认每天 10:30 和 22:30）
 
 ## 故障排查
 

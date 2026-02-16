@@ -7,7 +7,7 @@
 - ✅ **新闻抓取**: 自动抓取 ZAKER 网站最新新闻
 - ✅ **智能分类**: 使用 GLM-4.7 大模型对新闻进行智能分类
 - ✅ **图片生成**: 自动生成精美的新闻摘要图片
-- ✅ **定时推送**: 每天 10:00 自动推送到飞书群
+- ✅ **定时推送**: 每天 10:30 和 22:30 自动推送到飞书群
 - ✅ **多群支持**: 支持同时推送到多个飞书群
 
 ## 系统架构
@@ -62,8 +62,8 @@ FEISHU_APP_ID=your_app_id
 FEISHU_APP_SECRET=your_app_secret
 FEISHU_CHAT_IDS=chat_id_1,chat_id_2
 
-# 定时任务（每天10:00执行）
-CRON_EXPRESSION=0 10 * * *
+# 定时任务（每天10:30和22:30执行）
+CRON_EXPRESSION=30 10,22 * * *
 ```
 
 或直接编辑 `config.json`：
@@ -139,8 +139,8 @@ node main.js
 使用 cron 表达式配置定时任务：
 
 ```bash
-# 每天 10:00
-CRON_EXPRESSION=0 10 * * *
+# 每天 10:30 和 22:30
+CRON_EXPRESSION=30 10,22 * * *
 
 # 每天 9:00 和 18:00
 CRON_EXPRESSION=0 9,18 * * *
