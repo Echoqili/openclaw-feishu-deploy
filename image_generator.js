@@ -97,8 +97,15 @@ class ImageGenerator {
       // 绘制统计信息
       this.drawStats(ctx, summaryData.stats);
 
-      // 绘制分类新闻
-      this.drawCategoryNews(ctx, summaryData.groupedNews);
+      // 收集已显示的新闻标题
+      const shownTitles = new Set();
+      let currentY = 320;
+
+      // 绘制重要新闻
+      currentY = this.drawImportantNews(ctx, summaryData.importantNews, summaryData.stats.highImportance, shownTitles, currentY);
+
+      // 绘制分类新闻（排除重要新闻）
+      currentY = this.drawCategoryNews(ctx, summaryData.groupedNews, shownTitles, currentY);
 
       // 绘制底部信息
       this.drawFooter(ctx);
@@ -204,66 +211,116 @@ class ImageGenerator {
   }
 
   /**
-   * 绘制分类新闻
+   * 绘制重要新闻
    */
-  drawCategoryNews(ctx, groupedNews) {
-    let currentY = 320;
+  drawImportantNews(ctx, importantNews, totalCount, shownTitles, startY) {
+    if (!importantNews || importantNews.length === 0) return startY;
+
     const padding = 40;
     const cardWidth = this.width - padding * 2;
+    let currentY = startY;
 
-    // 限制显示的分类数量
-    const categories = Object.entries(groupedNews).slice(0, 6);
+    // 重要新闻标题
+    ctx.fillStyle = '#FF9800';
+    ctx.font = 'bold 26px CustomFont, Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`🔴 重要新闻 (${totalCount}条)`, padding, currentY);
+    currentY += 40;
 
-    categories.forEach(([category, newsList], index) => {
-      // 检查是否超出画布
-      if (currentY + 200 > this.height - 100) return;
+    // 绘制每条重要新闻
+    importantNews.forEach((news, index) => {
+      if (currentY > this.height - 150) return; // 防止超出画布
+      
+      shownTitles.add(news.title);
 
-      // 分类卡片背景
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-      this.roundRect(ctx, padding, currentY, cardWidth, 180, 10);
+      // 序号
+      ctx.fillStyle = '#FF9800';
+      ctx.font = 'bold 20px CustomFont, Arial, sans-serif';
+      ctx.fillText(`${index + 1}.`, padding + 10, currentY);
 
-      // 分类标题背景
-      const categoryColor = this.colors.categoryColors[category] || this.colors.categoryColors['其他'];
-      ctx.fillStyle = categoryColor;
-      this.roundRect(ctx, padding, currentY, cardWidth, 40, 10, true, false);
+      // 标题
+      ctx.fillStyle = this.colors.text;
+      ctx.font = '20px CustomFont, Arial, sans-serif';
+      const maxWidth = cardWidth - 60;
+      const title = this.truncateText(ctx, news.title, maxWidth);
+      ctx.fillText(title, padding + 50, currentY);
+      currentY += 30;
+
+      // 摘要
+      if (news.classification?.summary) {
+        ctx.fillStyle = this.colors.textSecondary;
+        ctx.font = '16px CustomFont, Arial, sans-serif';
+        const summary = this.truncateText(ctx, news.classification.summary, maxWidth - 20);
+        ctx.fillText(summary, padding + 50, currentY);
+        currentY += 28;
+      }
+    });
+
+    return currentY + 20;
+  }
+
+  /**
+   * 绘制分类新闻
+   */
+  drawCategoryNews(ctx, groupedNews, shownTitles, startY) {
+    const padding = 40;
+    const cardWidth = this.width - padding * 2;
+    let currentY = startY;
+
+    // 分隔线
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.fillRect(padding, currentY, cardWidth, 2);
+    currentY += 20;
+
+    // 分类新闻
+    const categories = Object.entries(groupedNews);
+    categories.forEach(([category, newsList]) => {
+      if (currentY > this.height - 150) return;
+
+      // 过滤掉已显示的新闻
+      const filteredNews = newsList.filter(n => !shownTitles.has(n.title));
+      if (filteredNews.length === 0) return;
 
       // 分类标题
-      ctx.fillStyle = this.colors.text;
-      ctx.font = 'bold 22px CustomFont, Arial, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(`【${category}】(${newsList.length}条)`, padding + 20, currentY + 28);
+      const categoryColor = this.colors.categoryColors[category] || this.colors.categoryColors['其他'];
+      ctx.fillStyle = categoryColor;
+      ctx.font = 'bold 24px CustomFont, Arial, sans-serif';
+      ctx.fillText(`【${category}】(${filteredNews.length}条)`, padding, currentY);
+      currentY += 35;
 
-      // 新闻列表
-      const maxNews = Math.min(newsList.length, 3);
-      let yOffset = 0;
-      for (let i = 0; i < maxNews; i++) {
-        const news = newsList[i];
-        const newsY = currentY + 60 + i * 38 + yOffset;
+      // 绘制每条新闻
+      filteredNews.forEach((news, index) => {
+        if (currentY > this.height - 120) return;
+        
+        shownTitles.add(news.title);
 
         // 序号
         ctx.fillStyle = categoryColor;
         ctx.font = 'bold 18px CustomFont, Arial, sans-serif';
-        ctx.fillText(`${i + 1}.`, padding + 20, newsY);
+        ctx.fillText(`${index + 1}.`, padding + 10, currentY);
 
         // 标题
         ctx.fillStyle = this.colors.text;
         ctx.font = '18px CustomFont, Arial, sans-serif';
         const maxWidth = cardWidth - 60;
         const title = this.truncateText(ctx, news.title, maxWidth);
-        ctx.fillText(title, padding + 50, newsY);
+        ctx.fillText(title, padding + 50, currentY);
+        currentY += 28;
 
-        // 摘要（每条新闻都显示）
+        // 摘要
         if (news.classification?.summary) {
           ctx.fillStyle = this.colors.textSecondary;
           ctx.font = '14px CustomFont, Arial, sans-serif';
-          const summary = this.truncateText(ctx, news.classification.summary, maxWidth - 10);
-          ctx.fillText(summary, padding + 50, newsY + 18);
-          yOffset += 20; // 增加偏移量
+          const summary = this.truncateText(ctx, news.classification.summary, maxWidth - 20);
+          ctx.fillText(summary, padding + 50, currentY);
+          currentY += 24;
         }
-      }
+      });
 
-      currentY += 200 + yOffset;
+      currentY += 15;
     });
+
+    return currentY;
   }
 
   /**
