@@ -1,6 +1,6 @@
 FROM node:22-alpine
 
-# 安装 canvas 依赖
+# 安装 canvas 依赖和中文字体
 RUN apk add --no-cache \
     python3 \
     make \
@@ -9,7 +9,9 @@ RUN apk add --no-cache \
     pango-dev \
     jpeg-dev \
     giflib-dev \
-    librsvg-dev
+    librsvg-dev \
+    wqy-zenhei \
+    fontconfig
 
 # 设置工作目录
 WORKDIR /app
@@ -21,13 +23,16 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 # 复制源代码
-COPY . .
+COPY src ./src
 
 # 创建必要的目录
-RUN mkdir -p output history logs
+RUN mkdir -p config output history logs
+
+# 复制配置文件
+COPY config/config.json ./config/
 
 # 设置时区
 ENV TZ=Asia/Shanghai
 
 # 启动命令
-CMD ["node", "main.js"]
+CMD ["node", "src/main.js"]

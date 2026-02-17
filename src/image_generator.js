@@ -48,28 +48,37 @@ class ImageGenerator {
    */
   async initFonts() {
     try {
-      // 尝试加载中文字体
+      // 尝试加载中文字体（按优先级排序）
       const possibleFonts = [
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        // Alpine Linux 中的 wqy-zenhei 字体（支持中文）
+        '/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc',
+        // 其他 Linux 发行版的中文字体
+        '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
         '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+        // Windows 微软雅黑
         'C:\\Windows\\Fonts\\msyh.ttc',
-        '/System/Library/Fonts/PingFang.ttc'
+        'C:\\Windows\\Fonts\\msyhbd.ttc',
+        // macOS 字体
+        '/System/Library/Fonts/PingFang.ttc',
+        '/System/Library/Fonts/STHeiti Light.ttc',
+        '/System/Library/Fonts/Hiragino Sans GB.ttc'
       ];
 
       for (const fontPath of possibleFonts) {
         try {
           await fs.access(fontPath);
           registerFont(fontPath, { family: 'CustomFont' });
-          console.log(`加载字体成功: ${fontPath}`);
+          console.log(`✓ 加载字体成功: ${fontPath}`);
           return;
         } catch (e) {
           // 字体不存在，继续尝试下一个
         }
       }
       
-      console.log('使用默认字体');
+      console.warn('⚠ 未找到中文字体，将使用默认字体（可能显示乱码）');
     } catch (error) {
-      console.log('字体加载失败，使用默认字体:', error.message);
+      console.error('字体加载失败:', error.message);
     }
   }
 
