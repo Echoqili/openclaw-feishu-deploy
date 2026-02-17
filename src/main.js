@@ -218,9 +218,9 @@ class NewsBot {
 
   /**
    * 启动定时任务
-   * 默认每天10:00和22:00执行
+   * 默认每天10:30和22:30执行
    */
-  startScheduledTask(cronExpression = '0 10,22 * * *') {
+  startScheduledTask(cronExpression = '30 10,22 * * *') {
     console.log(`启动定时任务，执行时间: ${cronExpression}`);
     console.log('当前时间:', new Date().toLocaleString('zh-CN'));
     
@@ -233,8 +233,8 @@ class NewsBot {
 
     console.log('定时任务已启动，等待执行...\n');
     console.log('执行时间说明:');
-    console.log('  - 早上 10:00');
-    console.log('  - 晚上 22:00');
+    console.log('  - 早上 10:30');
+    console.log('  - 晚上 22:30');
     console.log('');
   }
 
@@ -336,8 +336,8 @@ async function main() {
     await bot.run();
     process.exit(0);
   } else {
-    // 启动定时任务（每天10:00和22:00）
-    const cronExpression = process.env.CRON_EXPRESSION || '0 10,22 * * *';
+    // 启动定时任务（每天10:30和22:30）
+    const cronExpression = process.env.CRON_EXPRESSION || '30 10,22 * * *';
     bot.startScheduledTask(cronExpression);
     
     // 保持进程运行
