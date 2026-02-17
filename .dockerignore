@@ -1,0 +1,11 @@
+node_modules
+output
+history
+logs
+.git
+.codebuddy
+*.md
+!README_NEWS_BOT.md
+.env
+*.bat
+*.sh
