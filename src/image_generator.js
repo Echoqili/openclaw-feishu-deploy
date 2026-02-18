@@ -228,16 +228,23 @@ class ImageGenerator {
     const padding = 40;
     const cardWidth = this.width - padding * 2;
     let currentY = startY;
+    
+    // 限制图片上显示的重要新闻数量（最多10条）
+    const displayNews = importantNews.slice(0, 10);
+    const displayCount = displayNews.length;
 
     // 重要新闻标题
     ctx.fillStyle = '#FF9800';
     ctx.font = 'bold 26px CustomFont, Arial, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`🔴 重要新闻 (${totalCount}条)`, padding, currentY);
+    const displayText = displayCount < totalCount 
+      ? `🔴 重要新闻 (展示${displayCount}条/共${totalCount}条)` 
+      : `🔴 重要新闻 (${totalCount}条)`;
+    ctx.fillText(displayText, padding, currentY);
     currentY += 40;
 
     // 绘制每条重要新闻
-    importantNews.forEach((news, index) => {
+    displayNews.forEach((news, index) => {
       if (currentY > this.height - 150) return; // 防止超出画布
       
       shownTitles.add(news.title);
@@ -289,16 +296,24 @@ class ImageGenerator {
       // 过滤掉已显示的新闻
       const filteredNews = newsList.filter(n => !shownTitles.has(n.title));
       if (filteredNews.length === 0) return;
+      
+      // 限制每个分类在图片上显示的数量（最多3条）
+      const displayNews = filteredNews.slice(0, 3);
+      const displayCount = displayNews.length;
+      const totalCount = filteredNews.length;
 
       // 分类标题
       const categoryColor = this.colors.categoryColors[category] || this.colors.categoryColors['其他'];
       ctx.fillStyle = categoryColor;
       ctx.font = 'bold 24px CustomFont, Arial, sans-serif';
-      ctx.fillText(`【${category}】(${filteredNews.length}条)`, padding, currentY);
+      const categoryText = displayCount < totalCount 
+        ? `【${category}】(展示${displayCount}条/共${totalCount}条)` 
+        : `【${category}】(${totalCount}条)`;
+      ctx.fillText(categoryText, padding, currentY);
       currentY += 35;
 
       // 绘制每条新闻
-      filteredNews.forEach((news, index) => {
+      displayNews.forEach((news, index) => {
         if (currentY > this.height - 120) return;
         
         shownTitles.add(news.title);
