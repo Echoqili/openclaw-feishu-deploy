@@ -7,6 +7,8 @@
   "feishuAppSecret": "YOUR_FEISHU_APP_SECRET_HERE",
   "feishuChatIds": ["oc_your_chat_id_here"],
   "cloudbaseEnv": "your-cloudbase-env-id",
+  "cloudbaseSecretId": "YOUR_CLOUDBASE_SECRET_ID_HERE",
+  "cloudbaseSecretKey": "YOUR_CLOUDBASE_SECRET_KEY_HERE",
   "newsLimit": 50,
   "selectedLimit": 30,
   "outputDir": "./output",

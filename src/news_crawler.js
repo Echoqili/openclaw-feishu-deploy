@@ -30,7 +30,7 @@ class NewsCrawler {
       
       const response = await axios.get(this.baseUrl, {
         headers: this.headers,
-        timeout: 10000
+        timeout: 30000 // 增加到30秒
       });
 
       const $ = cheerio.load(response.data);
@@ -217,29 +217,177 @@ class NewsCrawler {
   }
 
   /**
-   * 综合抓取方法 - 获取最新热门新闻
+   * 带重试的请求方法
+   * @param {string} url - 请求URL
+   * @param {Object} options - 请求选项
+   * @param {number} retries - 重试次数
+   * @returns {Object} 响应数据
+   */
+  async fetchWithRetry(url, options = {}, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await axios.get(url, {
+          ...options,
+          timeout: options.timeout || 30000
+        });
+        return response;
+      } catch (error) {
+        if (i === retries - 1) {
+          throw error;
+        }
+        console.log(`请求失败，第 ${i + 1} 次重试...`);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 等待2秒后重试
+      }
+    }
+  }
+
+  /**
+   * 抓取备用新闻源 - 新浪新闻
+   * @param {number} limit - 数量限制
+   * @returns {Array} 新闻列表
+   */
+  async fetchSinaNews(limit = 30) {
+    try {
+      console.log('正在抓取新浪新闻...');
+      const response = await this.fetchWithRetry('https://news.sina.com.cn/', {
+        headers: this.headers
+      });
+
+      const $ = cheerio.load(response.data);
+      const newsList = [];
+
+      // 解析新浪新闻
+      $('a[href*="news.sina"], a[href*="sina.com.cn"]').each((index, element) => {
+        if (newsList.length >= limit) return false;
+
+        const $link = $(element);
+        const title = $link.text().trim();
+        const href = $link.attr('href');
+
+        if (title && title.length > 10 && href && href.startsWith('http')) {
+          newsList.push({
+            title,
+            link: href,
+            description: '',
+            source: '新浪新闻',
+            image: '',
+            publishTime: new Date().toISOString(),
+            crawlTime: new Date().toISOString()
+          });
+        }
+      });
+
+      console.log(`从新浪新闻抓取 ${newsList.length} 条`);
+      return newsList;
+    } catch (error) {
+      console.error('抓取新浪新闻失败:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * 抓取备用新闻源 - 网易新闻
+   * @param {number} limit - 数量限制
+   * @returns {Array} 新闻列表
+   */
+  async fetchNetEaseNews(limit = 30) {
+    try {
+      console.log('正在抓取网易新闻...');
+      const response = await this.fetchWithRetry('https://news.163.com/', {
+        headers: this.headers
+      });
+
+      const $ = cheerio.load(response.data);
+      const newsList = [];
+
+      // 解析网易新闻
+      $('a[href*="163.com"], a[href*="news.163"]').each((index, element) => {
+        if (newsList.length >= limit) return false;
+
+        const $link = $(element);
+        const title = $link.text().trim();
+        const href = $link.attr('href');
+
+        if (title && title.length > 10 && href && href.startsWith('http')) {
+          newsList.push({
+            title,
+            link: href,
+            description: '',
+            source: '网易新闻',
+            image: '',
+            publishTime: new Date().toISOString(),
+            crawlTime: new Date().toISOString()
+          });
+        }
+      });
+
+      console.log(`从网易新闻抓取 ${newsList.length} 条`);
+      return newsList;
+    } catch (error) {
+      console.error('抓取网易新闻失败:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * 综合抓取方法 - 获取最新热门新闻（带重试和备用源）
    * @param {number} totalLimit - 总数量限制
    * @returns {Array} 新闻列表
    */
   async fetchLatestNews(totalLimit = 30) {
+    const allNews = [];
+    
+    // 1. 尝试 ZAKER
     try {
-      // 先尝试抓取首页
-      let newsList = await this.fetchHomePageNews(totalLimit);
-      
-      // 如果首页新闻不足，尝试抓取热门分类
-      if (newsList.length < totalLimit) {
-        const hotNews = await this.fetchCategoryNews('hot', totalLimit - newsList.length);
-        newsList = [...newsList, ...hotNews];
-      }
-
-      // 去重
-      const uniqueNews = this.removeDuplicates(newsList);
-      
-      return uniqueNews.slice(0, totalLimit);
+      console.log('尝试抓取 ZAKER 新闻...');
+      const zakerNews = await this.fetchHomePageNews(totalLimit);
+      allNews.push(...zakerNews);
     } catch (error) {
-      console.error('综合抓取失败:', error.message);
-      throw error;
+      console.error('ZAKER 抓取失败:', error.message);
     }
+
+    // 2. 如果 ZAKER 失败或数量不足，尝试新浪新闻
+    if (allNews.length < totalLimit) {
+      try {
+        console.log('尝试抓取新浪新闻...');
+        const sinaNews = await this.fetchSinaNews(totalLimit - allNews.length);
+        allNews.push(...sinaNews);
+      } catch (error) {
+        console.error('新浪新闻抓取失败:', error.message);
+      }
+    }
+
+    // 3. 如果还不够，尝试网易新闻
+    if (allNews.length < totalLimit) {
+      try {
+        console.log('尝试抓取网易新闻...');
+        const netEaseNews = await this.fetchNetEaseNews(totalLimit - allNews.length);
+        allNews.push(...netEaseNews);
+      } catch (error) {
+        console.error('网易新闻抓取失败:', error.message);
+      }
+    }
+
+    // 4. 如果还不够，尝试抓取热门分类
+    if (allNews.length < totalLimit) {
+      try {
+        const hotNews = await this.fetchCategoryNews('hot', totalLimit - allNews.length);
+        allNews.push(...hotNews);
+      } catch (error) {
+        console.error('分类新闻抓取失败:', error.message);
+      }
+    }
+
+    // 去重
+    const uniqueNews = this.removeDuplicates(allNews);
+    
+    console.log(`总共抓取 ${uniqueNews.length} 条新闻`);
+    
+    if (uniqueNews.length === 0) {
+      throw new Error('所有新闻源都无法访问');
+    }
+
+    return uniqueNews.slice(0, totalLimit);
   }
 
   /**

@@ -192,9 +192,10 @@ class NewsClassifier {
         negativeNews: classifiedNews.filter(n => n.classification?.sentiment === '负面').length
       };
 
-      // 提取重要新闻（所有高重要度的新闻）
+      // 提取重要新闻（所有高重要度的新闻，最多25条）
       const importantNews = classifiedNews
-        .filter(n => n.classification?.importance === '高');
+        .filter(n => n.classification?.importance === '高')
+        .slice(0, 25);
 
       // 提取正面新闻（所有正面新闻，统计用）
       const positiveNews = classifiedNews
@@ -253,25 +254,50 @@ module.exports = NewsClassifier;
 
 // 测试代码
 if (require.main === module) {
-  const classifier = new NewsClassifier();
+  const fs = require('fs').promises;
+  const path = require('path');
   
-  const testNews = [
-    {
-      title: '苹果发布最新AI芯片，性能提升50%',
-      description: '苹果公司今日发布最新M4芯片，集成AI处理能力...'
-    },
-    {
-      title: '中国男足世界杯预选赛获胜',
-      description: '中国男足在世预赛中2:0战胜对手...'
+  async function test() {
+    // 尝试从配置文件读取配置
+    let config = {};
+    
+    try {
+      const configPath = path.join(__dirname, '../config/config.json');
+      const configFile = await fs.readFile(configPath, 'utf-8');
+      const fileConfig = JSON.parse(configFile);
+      config = {
+        apiKey: fileConfig.volcanoApiKey,
+        apiSecret: fileConfig.volcanoApiSecret,
+        endpoint: fileConfig.volcanoEndpoint,
+        model: fileConfig.volcanoModel
+      };
+      console.log('已加载配置文件');
+    } catch (e) {
+      console.log('未找到配置文件，使用默认配置');
     }
-  ];
+    
+    const classifier = new NewsClassifier(config);
+    
+    const testNews = [
+      {
+        title: '苹果发布最新AI芯片，性能提升50%',
+        description: '苹果公司今日发布最新M4芯片，集成AI处理能力...'
+      },
+      {
+        title: '中国男足世界杯预选赛获胜',
+        description: '中国男足在世预赛中2:0战胜对手...'
+      }
+    ];
 
-  classifier.classifyNewsBatch(testNews)
-    .then(results => {
-      console.log('分类结果:');
-      console.log(JSON.stringify(results, null, 2));
-    })
-    .catch(err => {
-      console.error('测试失败:', err);
-    });
+    classifier.classifyNewsBatch(testNews)
+      .then(results => {
+        console.log('分类结果:');
+        console.log(JSON.stringify(results, null, 2));
+      })
+      .catch(err => {
+        console.error('测试失败:', err);
+      });
+  }
+  
+  test();
 }

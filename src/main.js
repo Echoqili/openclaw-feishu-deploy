@@ -33,6 +33,8 @@ class NewsBot {
       historyDir: config.historyDir || './history',
       maxHistoryDays: config.maxHistoryDays || 7,
       cloudbaseEnv: config.cloudbaseEnv || null,
+      cloudbaseSecretId: config.cloudbaseSecretId || null,
+      cloudbaseSecretKey: config.cloudbaseSecretKey || null,
       cloudbaseCollection: 'news_history'
     });
 
@@ -195,7 +197,7 @@ class NewsBot {
     // 选择各分类的代表性新闻（确保多样性）
     const selected = [];
     const categoryCount = {};
-    const maxPerCategory = 3; // 每个分类最多3条
+    const maxPerCategory = 5; // 每个分类最多5条
 
     for (const news of scored) {
       if (selected.length >= limit) break;

@@ -16,6 +16,8 @@ class NewsHistory {
     
     // CloudBase 配置
     this.cloudbaseEnv = config.cloudbaseEnv || null;
+    this.cloudbaseSecretId = config.cloudbaseSecretId || null;
+    this.cloudbaseSecretKey = config.cloudbaseSecretKey || null;
     this.cloudbaseCollection = config.cloudbaseCollection || 'news_history';
     this.db = null;
     this.useCloudBase = false;
@@ -29,9 +31,17 @@ class NewsHistory {
     if (this.cloudbaseEnv) {
       try {
         const cloudbase = require('@cloudbase/node-sdk');
-        const app = cloudbase.init({
+        const initConfig = {
           env: this.cloudbaseEnv
-        });
+        };
+        
+        // 如果有密钥配置，使用密钥
+        if (this.cloudbaseSecretId && this.cloudbaseSecretKey) {
+          initConfig.secretId = this.cloudbaseSecretId;
+          initConfig.secretKey = this.cloudbaseSecretKey;
+        }
+        
+        const app = cloudbase.init(initConfig);
         this.db = app.database();
         this.useCloudBase = true;
         console.log(`✓ CloudBase 数据库已连接: ${this.cloudbaseEnv}`);
