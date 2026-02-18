@@ -31,7 +31,9 @@ class NewsBot {
     });
     this.history = new NewsHistory({
       historyDir: config.historyDir || './history',
-      maxHistoryDays: config.maxHistoryDays || 7
+      maxHistoryDays: config.maxHistoryDays || 7,
+      cloudbaseEnv: config.cloudbaseEnv || null,
+      cloudbaseCollection: 'news_history'
     });
 
     this.config = config;
