@@ -35,96 +35,138 @@ class NewsCrawler {
 
       const $ = cheerio.load(response.data);
       const newsList = [];
+      const seenLinks = new Set(); // 用于去重
 
-      // 解析首页新闻列表
-      // ZAKER 的页面结构可能需要根据实际情况调整
-      $('.news-item, .article-item, .feed-item, [class*="news"], [class*="article"]').each((index, element) => {
-        if (newsList.length >= limit) return false;
+      // 解析首页新闻列表 - 多种选择器策略
+      // 策略1: 常见新闻列表容器
+      const selectors = [
+        '.news-item', '.article-item', '.feed-item', '.list-item',
+        '[class*="news-item"]', '[class*="article-item"]', '[class*="feed-item"]',
+        '.article-list .item', '.news-list li', 'ul.list li',
+        '.item-content', '.content-item', '.post-item',
+        'div[data-id]', 'article'
+      ];
 
-        const $item = $(element);
+      for (const selector of selectors) {
+        if (newsList.length >= limit) break;
         
-        // 提取标题
-        const title = $item.find('h1, h2, h3, .title, [class*="title"]').text().trim() ||
-                     $item.find('a').attr('title') || 
-                     $item.text().trim();
-        
-        // 提取链接 - 优化链接提取逻辑
-        let link = '';
-        const $links = $item.find('a');
-        $links.each((i, el) => {
-          const href = $(el).attr('href') || '';
-          // 优先选择包含 article 或 news 的链接
-          if (href.includes('/article/') || href.includes('/news/')) {
-            link = href;
-            return false; // 找到就停止
+        $(selector).each((index, element) => {
+          if (newsList.length >= limit) return false;
+
+          const $item = $(element);
+          
+          // 提取标题 - 多种方式尝试
+          let title = $item.find('h1, h2, h3, h4, .title, [class*="title"], .headline').first().text().trim();
+          if (!title) {
+            title = $item.find('a').attr('title') || $item.find('a').attr('alt');
           }
-          // 其次选择完整的URL
-          if (!link && href.startsWith('http')) {
-            link = href;
+          if (!title) {
+            // 尝试从链接文本获取
+            const $mainLink = $item.find('a').first();
+            title = $mainLink.text().trim();
+          }
+          
+          // 提取链接 - 优先级：文章链接 > 新闻链接 > 任意完整链接
+          let link = '';
+          const $links = $item.find('a');
+          $links.each((i, el) => {
+            const href = $(el).attr('href') || '';
+            if (href.includes('/article/') || href.includes('/news/') || 
+                href.includes('/a/') || href.includes('news_article')) {
+              link = href;
+              return false;
+            }
+          });
+          
+          // 如果没找到文章链接，选择第一个有效链接
+          if (!link) {
+            $links.each((i, el) => {
+              const href = $(el).attr('href') || '';
+              if (href && (href.startsWith('http') || href.startsWith('/'))) {
+                link = href;
+                return false;
+              }
+            });
+          }
+          
+          // 规范化链接
+          let fullLink = '';
+          if (link) {
+            if (link.startsWith('http://') || link.startsWith('https://')) {
+              fullLink = link;
+            } else if (link.startsWith('//')) {
+              fullLink = 'https:' + link;
+            } else if (link.startsWith('/')) {
+              fullLink = this.baseUrl + link;
+            }
+          }
+          
+          // 去重检查
+          if (seenLinks.has(fullLink)) return;
+          
+          // 提取描述
+          const description = $item.find('.desc, .summary, [class*="desc"], [class*="summary"], p').text().trim();
+          
+          // 提取来源
+          const source = $item.find('.source, .author, [class*="source"], [class*="author"]').text().trim() || 'ZAKER';
+          
+          // 提取图片
+          const image = $item.find('img').attr('src') || 
+                       $item.find('img').attr('data-src') || '';
+
+          // 放宽过滤条件：标题长度 > 3 即可，链接有效
+          if (title && title.length > 3 && fullLink && fullLink !== this.baseUrl) {
+            seenLinks.add(fullLink);
+            
+            // 提取发布时间
+            const timeText = $item.find('.time, .date, [class*="time"], [class*="date"]').text().trim();
+            const publishTime = this.parsePublishTime(timeText);
+            
+            newsList.push({
+              title,
+              link: fullLink,
+              description,
+              source,
+              image,
+              publishTime: publishTime || new Date().toISOString(),
+              crawlTime: new Date().toISOString()
+            });
           }
         });
-        
-        // 规范化链接
-        let fullLink = '';
-        if (link) {
-          if (link.startsWith('http://') || link.startsWith('https://')) {
-            fullLink = link;
-          } else if (link.startsWith('//')) {
-            fullLink = 'https:' + link;
-          } else if (link.startsWith('/')) {
-            fullLink = this.baseUrl + link;
-          }
-        }
-        
-        // 提取描述
-        const description = $item.find('.desc, .summary, [class*="desc"], p').text().trim();
-        
-        // 提取来源
-        const source = $item.find('.source, .author, [class*="source"]').text().trim() || 'ZAKER';
-        
-        // 提取图片
-        const image = $item.find('img').attr('src') || 
-                     $item.find('img').attr('data-src') || '';
+      }
 
-        // 只保留有有效链接的新闻
-        if (title && title.length > 5 && fullLink && fullLink !== this.baseUrl) {
-          // 提取发布时间
-          const timeText = $item.find('.time, .date, [class*="time"], [class*="date"]').text().trim();
-          const publishTime = this.parsePublishTime(timeText);
-          
-          newsList.push({
-            title,
-            link: fullLink,
-            description,
-            source,
-            image,
-            publishTime: publishTime || new Date().toISOString(),
-            crawlTime: new Date().toISOString()
-          });
-        }
-      });
-
-      // 如果上述选择器没有匹配到，尝试其他方式
-      if (newsList.length === 0) {
-        console.log('尝试备用解析方式...');
+      // 如果上述选择器没有匹配到足够的新闻，尝试解析所有链接
+      if (newsList.length < limit) {
+        console.log(`主选择器只找到 ${newsList.length} 条，尝试遍历所有链接...`);
         
         $('a').each((index, element) => {
           if (newsList.length >= limit) return false;
           
           const $link = $(element);
           const title = $link.text().trim();
-          const href = $link.attr('href');
+          const href = $link.attr('href') || '';
           
-          if (title && title.length > 10 && href && (href.includes('/article') || href.includes('/news'))) {
-            newsList.push({
-              title,
-              link: href.startsWith('http') ? href : `${this.baseUrl}${href}`,
-              description: '',
-              source: 'ZAKER',
-              image: '',
-              publishTime: new Date().toISOString(),
-              crawlTime: new Date().toISOString()
-            });
+          // 放宽条件：标题 > 5 字符，链接是文章类型或完整链接
+          if (title && title.length > 5 && href && 
+              (href.includes('/article') || href.includes('/news') || href.includes('/a/') || 
+               (href.startsWith('http') && !href.includes('javascript')))) {
+            
+            const fullLink = href.startsWith('http') ? href : 
+                            href.startsWith('//') ? 'https:' + href :
+                            href.startsWith('/') ? this.baseUrl + href : href;
+            
+            if (!seenLinks.has(fullLink) && fullLink !== this.baseUrl) {
+              seenLinks.add(fullLink);
+              newsList.push({
+                title,
+                link: fullLink,
+                description: '',
+                source: 'ZAKER',
+                image: '',
+                publishTime: new Date().toISOString(),
+                crawlTime: new Date().toISOString()
+              });
+            }
           }
         });
       }
@@ -255,27 +297,84 @@ class NewsCrawler {
 
       const $ = cheerio.load(response.data);
       const newsList = [];
+      const seenLinks = new Set();
 
-      // 解析新浪新闻
-      $('a[href*="news.sina"], a[href*="sina.com.cn"]').each((index, element) => {
-        if (newsList.length >= limit) return false;
+      // 新浪新闻的主要结构选择器
+      const selectors = [
+        '.blk_01 a', '.blk_02 a', '.blk_03 a', '.blk_04 a',
+        '.list_14 li a', '.list_02 li a', '.list_03 li a', '.list_06 li a',
+        '.hot_list li a', '.hot_rank a',
+        '.news-item a', '.article-item a',
+        'ul[class*="list"] li a'
+      ];
 
-        const $link = $(element);
-        const title = $link.text().trim();
-        const href = $link.attr('href');
+      for (const selector of selectors) {
+        if (newsList.length >= limit) break;
+        
+        $(selector).each((index, element) => {
+          if (newsList.length >= limit) return false;
 
-        if (title && title.length > 10 && href && href.startsWith('http')) {
-          newsList.push({
-            title,
-            link: href,
-            description: '',
-            source: '新浪新闻',
-            image: '',
-            publishTime: new Date().toISOString(),
-            crawlTime: new Date().toISOString()
-          });
-        }
-      });
+          const $link = $(element);
+          const title = $link.text().trim();
+          let href = $link.attr('href') || '';
+
+          // 放宽条件：标题 > 5 字符，链接有效
+          if (title && title.length > 5 && href && 
+              (href.startsWith('http') || href.startsWith('//'))) {
+            
+            const fullLink = href.startsWith('//') ? 'https:' + href : href;
+            
+            // 去重并过滤非新闻链接
+            if (!seenLinks.has(fullLink) && 
+                (fullLink.includes('sina.com.cn') || fullLink.includes('news.sina')) &&
+                !fullLink.includes('javascript') && 
+                !fullLink.includes('#') &&
+                !fullLink.includes('login') &&
+                !fullLink.includes('register')) {
+              
+              seenLinks.add(fullLink);
+              newsList.push({
+                title,
+                link: fullLink,
+                description: '',
+                source: '新浪新闻',
+                image: '',
+                publishTime: new Date().toISOString(),
+                crawlTime: new Date().toISOString()
+              });
+            }
+          }
+        });
+      }
+
+      // 备用：遍历所有链接
+      if (newsList.length < limit) {
+        $('a[href*="sina.com.cn"], a[href*="news.sina"]').each((index, element) => {
+          if (newsList.length >= limit) return false;
+
+          const $link = $(element);
+          const title = $link.text().trim();
+          let href = $link.attr('href') || '';
+
+          if (title && title.length > 5 && href) {
+            const fullLink = href.startsWith('//') ? 'https:' + href : 
+                            href.startsWith('http') ? href : '';
+            
+            if (fullLink && !seenLinks.has(fullLink)) {
+              seenLinks.add(fullLink);
+              newsList.push({
+                title,
+                link: fullLink,
+                description: '',
+                source: '新浪新闻',
+                image: '',
+                publishTime: new Date().toISOString(),
+                crawlTime: new Date().toISOString()
+              });
+            }
+          }
+        });
+      }
 
       console.log(`从新浪新闻抓取 ${newsList.length} 条`);
       return newsList;
@@ -299,32 +398,185 @@ class NewsCrawler {
 
       const $ = cheerio.load(response.data);
       const newsList = [];
+      const seenLinks = new Set();
 
-      // 解析网易新闻
-      $('a[href*="163.com"], a[href*="news.163"]').each((index, element) => {
-        if (newsList.length >= limit) return false;
+      // 网易新闻的主要结构选择器
+      const selectors = [
+        '.news-item a', '.news_list a', '.news-list a',
+        '.item a', '.article-item a',
+        'ul.news_list li a', 'ul.list li a',
+        '.hot_news a', '.top_news a',
+        'a[href*="/article/"]', 'a[href*=".html"]'
+      ];
 
-        const $link = $(element);
-        const title = $link.text().trim();
-        const href = $link.attr('href');
+      for (const selector of selectors) {
+        if (newsList.length >= limit) break;
+        
+        $(selector).each((index, element) => {
+          if (newsList.length >= limit) return false;
 
-        if (title && title.length > 10 && href && href.startsWith('http')) {
-          newsList.push({
-            title,
-            link: href,
-            description: '',
-            source: '网易新闻',
-            image: '',
-            publishTime: new Date().toISOString(),
-            crawlTime: new Date().toISOString()
-          });
-        }
-      });
+          const $link = $(element);
+          const title = $link.text().trim();
+          let href = $link.attr('href') || '';
+
+          // 放宽条件：标题 > 5 字符
+          if (title && title.length > 5 && href) {
+            const fullLink = href.startsWith('//') ? 'https:' + href : 
+                            href.startsWith('http') ? href :
+                            href.startsWith('/') ? 'https://news.163.com' + href : '';
+            
+            // 去重并过滤非新闻链接
+            if (fullLink && !seenLinks.has(fullLink) && 
+                (fullLink.includes('163.com') || fullLink.includes('netease')) &&
+                !fullLink.includes('javascript') && 
+                !fullLink.includes('#') &&
+                !fullLink.includes('login')) {
+              
+              seenLinks.add(fullLink);
+              newsList.push({
+                title,
+                link: fullLink,
+                description: '',
+                source: '网易新闻',
+                image: '',
+                publishTime: new Date().toISOString(),
+                crawlTime: new Date().toISOString()
+              });
+            }
+          }
+        });
+      }
+
+      // 备用：遍历所有链接
+      if (newsList.length < limit) {
+        $('a[href*="163.com"], a[href*="netease"]').each((index, element) => {
+          if (newsList.length >= limit) return false;
+
+          const $link = $(element);
+          const title = $link.text().trim();
+          let href = $link.attr('href') || '';
+
+          if (title && title.length > 5 && href) {
+            const fullLink = href.startsWith('//') ? 'https:' + href : 
+                            href.startsWith('http') ? href : '';
+            
+            if (fullLink && !seenLinks.has(fullLink)) {
+              seenLinks.add(fullLink);
+              newsList.push({
+                title,
+                link: fullLink,
+                description: '',
+                source: '网易新闻',
+                image: '',
+                publishTime: new Date().toISOString(),
+                crawlTime: new Date().toISOString()
+              });
+            }
+          }
+        });
+      }
 
       console.log(`从网易新闻抓取 ${newsList.length} 条`);
       return newsList;
     } catch (error) {
       console.error('抓取网易新闻失败:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * 抓取备用新闻源 - 腾讯新闻
+   * @param {number} limit - 数量限制
+   * @returns {Array} 新闻列表
+   */
+  async fetchTencentNews(limit = 30) {
+    try {
+      console.log('正在抓取腾讯新闻...');
+      const response = await this.fetchWithRetry('https://news.qq.com/', {
+        headers: this.headers
+      });
+
+      const $ = cheerio.load(response.data);
+      const newsList = [];
+      const seenLinks = new Set();
+
+      // 腾讯新闻的主要结构选择器
+      const selectors = [
+        '.list-item a', '.news-item a', '.article-item a',
+        '.content-list a', '.news-list a',
+        'ul.list li a', 'a[href*="/rain/"]', 'a[href*="/omn/"]',
+        '.detail a', '.title a'
+      ];
+
+      for (const selector of selectors) {
+        if (newsList.length >= limit) break;
+        
+        $(selector).each((index, element) => {
+          if (newsList.length >= limit) return false;
+
+          const $link = $(element);
+          const title = $link.text().trim();
+          let href = $link.attr('href') || '';
+
+          if (title && title.length > 5 && href) {
+            const fullLink = href.startsWith('//') ? 'https:' + href : 
+                            href.startsWith('http') ? href :
+                            href.startsWith('/') ? 'https://news.qq.com' + href : '';
+            
+            if (fullLink && !seenLinks.has(fullLink) && 
+                (fullLink.includes('qq.com') || fullLink.includes('tencent')) &&
+                !fullLink.includes('javascript') && 
+                !fullLink.includes('#') &&
+                !fullLink.includes('login')) {
+              
+              seenLinks.add(fullLink);
+              newsList.push({
+                title,
+                link: fullLink,
+                description: '',
+                source: '腾讯新闻',
+                image: '',
+                publishTime: new Date().toISOString(),
+                crawlTime: new Date().toISOString()
+              });
+            }
+          }
+        });
+      }
+
+      // 备用：遍历所有链接
+      if (newsList.length < limit) {
+        $('a[href*="qq.com"]').each((index, element) => {
+          if (newsList.length >= limit) return false;
+
+          const $link = $(element);
+          const title = $link.text().trim();
+          let href = $link.attr('href') || '';
+
+          if (title && title.length > 5 && href) {
+            const fullLink = href.startsWith('//') ? 'https:' + href : 
+                            href.startsWith('http') ? href : '';
+            
+            if (fullLink && !seenLinks.has(fullLink)) {
+              seenLinks.add(fullLink);
+              newsList.push({
+                title,
+                link: fullLink,
+                description: '',
+                source: '腾讯新闻',
+                image: '',
+                publishTime: new Date().toISOString(),
+                crawlTime: new Date().toISOString()
+              });
+            }
+          }
+        });
+      }
+
+      console.log(`从腾讯新闻抓取 ${newsList.length} 条`);
+      return newsList;
+    } catch (error) {
+      console.error('抓取腾讯新闻失败:', error.message);
       return [];
     }
   }
@@ -342,6 +594,7 @@ class NewsCrawler {
       console.log('尝试抓取 ZAKER 新闻...');
       const zakerNews = await this.fetchHomePageNews(totalLimit);
       allNews.push(...zakerNews);
+      console.log(`ZAKER 获取: ${zakerNews.length} 条，累计: ${allNews.length} 条`);
     } catch (error) {
       console.error('ZAKER 抓取失败:', error.message);
     }
@@ -352,6 +605,7 @@ class NewsCrawler {
         console.log('尝试抓取新浪新闻...');
         const sinaNews = await this.fetchSinaNews(totalLimit - allNews.length);
         allNews.push(...sinaNews);
+        console.log(`新浪新闻获取: ${sinaNews.length} 条，累计: ${allNews.length} 条`);
       } catch (error) {
         console.error('新浪新闻抓取失败:', error.message);
       }
@@ -363,16 +617,30 @@ class NewsCrawler {
         console.log('尝试抓取网易新闻...');
         const netEaseNews = await this.fetchNetEaseNews(totalLimit - allNews.length);
         allNews.push(...netEaseNews);
+        console.log(`网易新闻获取: ${netEaseNews.length} 条，累计: ${allNews.length} 条`);
       } catch (error) {
         console.error('网易新闻抓取失败:', error.message);
       }
     }
 
-    // 4. 如果还不够，尝试抓取热门分类
+    // 4. 如果还不够，尝试腾讯新闻
+    if (allNews.length < totalLimit) {
+      try {
+        console.log('尝试抓取腾讯新闻...');
+        const tencentNews = await this.fetchTencentNews(totalLimit - allNews.length);
+        allNews.push(...tencentNews);
+        console.log(`腾讯新闻获取: ${tencentNews.length} 条，累计: ${allNews.length} 条`);
+      } catch (error) {
+        console.error('腾讯新闻抓取失败:', error.message);
+      }
+    }
+
+    // 5. 如果还不够，尝试抓取热门分类
     if (allNews.length < totalLimit) {
       try {
         const hotNews = await this.fetchCategoryNews('hot', totalLimit - allNews.length);
         allNews.push(...hotNews);
+        console.log(`分类新闻获取: ${hotNews.length} 条，累计: ${allNews.length} 条`);
       } catch (error) {
         console.error('分类新闻抓取失败:', error.message);
       }
@@ -381,7 +649,7 @@ class NewsCrawler {
     // 去重
     const uniqueNews = this.removeDuplicates(allNews);
     
-    console.log(`总共抓取 ${uniqueNews.length} 条新闻`);
+    console.log(`总共抓取 ${uniqueNews.length} 条新闻（去重后）`);
     
     if (uniqueNews.length === 0) {
       throw new Error('所有新闻源都无法访问');
