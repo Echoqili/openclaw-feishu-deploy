@@ -2,7 +2,7 @@
   "volcanoApiKey": "YOUR_VOLCANO_API_KEY_HERE",
   "volcanoApiSecret": "",
   "volcanoEndpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
-  "volcanoModel": "ep-20260217192927-wjvtt",
+  "volcanoModel": "ep-20260228235730-b8l6d",
   "feishuAppId": "YOUR_FEISHU_APP_ID_HERE",
   "feishuAppSecret": "YOUR_FEISHU_APP_SECRET_HERE",
   "feishuChatIds": ["oc_your_chat_id_here"],
