@@ -1,34 +1,35 @@
-# Dependencies
+# 依赖安装
 node_modules/
 
-# Environment variables
+# 配置文件（包含敏感信息）
 .env
+.env.local
+.env.*.local
+config/config.json
+!config/config.template.json
 
-# Output
+# 输出文件
 output/
+history/
 logs/
-*.png
-*.jpg
-*.jpeg
-*.gif
+data/
 
-# Logs
+# 临时文件
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+*.tmp
+*.cache
 
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
+# IDE 配置
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
-# Temporary
-tmp/
-temp/
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 部署文件
+deploy.sh
+deploy.bat
+deploy.ps1

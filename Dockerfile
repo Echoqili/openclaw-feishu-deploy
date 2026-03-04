@@ -20,16 +20,16 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装依赖
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # 复制源代码
 COPY src ./src
 
+# 复制配置模板
+COPY config/config.template.json ./config/config.json
+
 # 创建必要的目录
 RUN mkdir -p config output history logs
-
-# 复制配置文件
-COPY config/config.json ./config/
 
 # 设置时区
 ENV TZ=Asia/Shanghai

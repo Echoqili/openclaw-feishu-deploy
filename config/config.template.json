@@ -1,0 +1,18 @@
+{
+  "volcanoApiKey": "${VOLCANO_API_KEY}",
+  "volcanoApiSecret": "${VOLCANO_API_SECRET}",
+  "volcanoEndpoint": "${VOLCANO_ENDPOINT}",
+  "volcanoModel": "${VOLCANO_MODEL}",
+  "feishuAppId": "${FEISHU_APP_ID}",
+  "feishuAppSecret": "${FEISHU_APP_SECRET}",
+  "feishuChatIds": ["${FEISHU_CHAT_IDS}"],
+  "cloudbaseEnv": "${CLOUDBASE_ENV}",
+  "cloudbaseSecretId": "${CLOUDBASE_SECRET_ID}",
+  "cloudbaseSecretKey": "${CLOUDBASE_SECRET_KEY}",
+  "newsLimit": "${NEWS_LIMIT}",
+  "selectedLimit": "${SELECTED_LIMIT}",
+  "outputDir": "${OUTPUT_DIR}",
+  "historyDir": "${HISTORY_DIR}",
+  "maxHistoryDays": "${MAX_HISTORY_DAYS}",
+  "cronExpression": "${CRON_EXPRESSION}"
+}
