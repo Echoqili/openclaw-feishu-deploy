@@ -81,7 +81,60 @@ docker -v
 docker-compose -v
 ```
 
-### 3. 第三方服务配置
+### 3. SSH MCP 工具
+
+#### 什么是 SSH MCP？
+
+SSH MCP 是 Trae-CN 的 SSH 连接插件，支持：
+- 远程服务器连接
+- 命令执行和脚本运行
+- 文件传输（SFTP）
+- Docker 容器管理
+- 后台任务执行
+
+#### 安装和配置
+
+**GitHub 仓库**: https://github.com/Echoqili/ssh-licco
+
+**配置步骤**：
+
+1. 在 Trae-CN 中配置 SSH 连接
+2. 保存服务器信息（主机、端口、用户名、密码/密钥）
+3. 连接后即可执行远程命令
+
+**常用命令**：
+
+```javascript
+// 连接 SSH
+mcp_ssh_ssh_connect({
+  host: "your_server_ip",
+  port: 22,
+  username: "root",
+  password: "your_password"  // 或使用 private_key_path
+})
+
+// 执行命令
+mcp_ssh_ssh_execute({
+  session_id: "session_id",
+  command: "docker ps"
+})
+
+// 文件传输
+mcp_ssh_ssh_file_transfer({
+  session_id: "session_id",
+  local_path: "./file.txt",
+  remote_path: "/remote/path/file.txt",
+  direction: "upload"  // 或 "download"
+})
+
+// 后台任务（如 Docker 构建）
+mcp_ssh_ssh_background_task({
+  session_id: "session_id",
+  command: "docker build -t news-bot:latest ."
+})
+```
+
+### 4. 第三方服务配置
 
 #### 火山引擎（AI 模型）
 
@@ -134,20 +187,20 @@ cp .env.example .env
 
 ```bash
 # 火山引擎 API 配置
-VOLCANO_API_KEY=YOUR_VOLCANO_API_KEY_HERE
+VOLCANO_API_KEY=your_api_key_here
 VOLCANO_API_SECRET=your_api_secret_here
 VOLCANO_ENDPOINT=https://ark.cn-beijing.volces.com/api/v3/chat/completions
-VOLCANO_MODEL=ep-20260228235730-b8l6d
+VOLCANO_MODEL=your_model_id_here
 
 # 飞书机器人配置
-FEISHU_APP_ID=YOUR_FEISHU_APP_ID_HERE
-FEISHU_APP_SECRET=YOUR_FEISHU_APP_SECRET_HERE
-FEISHU_CHAT_IDS=oc_your_chat_id_here
+FEISHU_APP_ID=your_app_id_here
+FEISHU_APP_SECRET=your_app_secret_here
+FEISHU_CHAT_IDS=your_chat_id_1,your_chat_id_2
 
 # 腾讯云 CloudBase 配置（可选）
-CLOUDBASE_ENV=your-cloudbase-env-id
-CLOUDBASE_SECRET_ID=YOUR_CLOUDBASE_SECRET_ID_HERE
-CLOUDBASE_SECRET_KEY=YOUR_CLOUDBASE_SECRET_KEY_HERE
+CLOUDBASE_ENV=your_env_id_here
+CLOUDBASE_SECRET_ID=your_secret_id_here
+CLOUDBASE_SECRET_KEY=your_secret_key_here
 
 # 新闻抓取配置
 NEWS_LIMIT=50
@@ -156,6 +209,8 @@ SELECTED_LIMIT=30
 # 定时任务配置
 CRON_EXPRESSION=30 10,22 * * *
 ```
+
+> ⚠️ **重要提示**：请将 `your_xxx_here` 替换为您自己的配置信息，不要使用示例中的值！
 
 ### 4. 本地测试
 
@@ -762,16 +817,16 @@ mcp_ssh_ssh_file_transfer # 传输文件
 
 ```json
 {
-  "volcanoApiKey": "火山引擎 API Key",
-  "volcanoApiSecret": "火山引擎 API Secret",
+  "volcanoApiKey": "your_api_key_here",
+  "volcanoApiSecret": "your_api_secret_here",
   "volcanoEndpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
-  "volcanoModel": "ep-20260228235730-b8l6d",
-  "feishuAppId": "飞书 App ID",
-  "feishuAppSecret": "飞书 App Secret",
-  "feishuChatIds": ["飞书群 ID1", "飞书群 ID2"],
-  "cloudbaseEnv": "CloudBase 环境 ID",
-  "cloudbaseSecretId": "CloudBase Secret ID",
-  "cloudbaseSecretKey": "CloudBase Secret Key",
+  "volcanoModel": "your_model_id_here",
+  "feishuAppId": "your_app_id_here",
+  "feishuAppSecret": "your_app_secret_here",
+  "feishuChatIds": ["your_chat_id_1", "your_chat_id_2"],
+  "cloudbaseEnv": "your_env_id_here",
+  "cloudbaseSecretId": "your_secret_id_here",
+  "cloudbaseSecretKey": "your_secret_key_here",
   "newsLimit": 50,
   "selectedLimit": 30,
   "outputDir": "./output",
@@ -781,10 +836,13 @@ mcp_ssh_ssh_file_transfer # 传输文件
 }
 ```
 
+> ⚠️ **重要提示**：配置文件中的敏感信息不应提交到 Git 仓库！
+
 ### C. 相关资源
 
 - **项目仓库**：https://gitee.com/liccolicco/openclaw-feishu-deploy
 - **Trae-CN 官网**：https://www.trae.cn/
+- **SSH MCP 工具**：https://github.com/Echoqili/ssh-licco
 - **火山引擎**：https://www.volcengine.com/
 - **飞书开放平台**：https://open.feishu.cn/
 - **Docker 文档**：https://docs.docker.com/
