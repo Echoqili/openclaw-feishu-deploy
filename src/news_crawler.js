@@ -114,8 +114,19 @@ class NewsCrawler {
           const image = $item.find('img').attr('src') || 
                        $item.find('img').attr('data-src') || '';
 
-          // 放宽过滤条件：标题长度 > 3 即可，链接有效
-          if (title && title.length > 3 && fullLink && fullLink !== this.baseUrl) {
+          // 严格过滤条件
+          const invalidKeywords = [
+            '网站地图', 'ICP 备', '公网安备', '备案号', '联系方式', '关于我们',
+            '广告服务', '诚聘英才', '用户协议', '隐私政策', 'Copyright',
+            '©', 'www.', 'http', 'com', 'cn', 'net', 'org'
+          ];
+          
+          const isInvalid = invalidKeywords.some(keyword => 
+            title.toLowerCase().includes(keyword.toLowerCase())
+          );
+          
+          if (title && title.length > 5 && fullLink && fullLink !== this.baseUrl && 
+              !isInvalid && fullLink.includes('/article/')) {
             seenLinks.add(fullLink);
             
             // 提取发布时间
@@ -146,16 +157,21 @@ class NewsCrawler {
           const title = $link.text().trim();
           const href = $link.attr('href') || '';
           
-          // 放宽条件：标题 > 5 字符，链接是文章类型或完整链接
-          if (title && title.length > 5 && href && 
-              (href.includes('/article') || href.includes('/news') || href.includes('/a/') || 
-               (href.startsWith('http') && !href.includes('javascript')))) {
-            
+          // 严格条件：只抓取文章链接
+          if (title && title.length > 8 && href && href.includes('/article/')) {
             const fullLink = href.startsWith('http') ? href : 
                             href.startsWith('//') ? 'https:' + href :
                             href.startsWith('/') ? this.baseUrl + href : href;
             
-            if (!seenLinks.has(fullLink) && fullLink !== this.baseUrl) {
+            // 过滤无效标题
+            const invalidKeywords = [
+              '网站地图', 'ICP 备', '公网安备', '备案号', 'Copyright', '©'
+            ];
+            const isInvalid = invalidKeywords.some(keyword => 
+              title.toLowerCase().includes(keyword.toLowerCase())
+            );
+            
+            if (!seenLinks.has(fullLink) && fullLink !== this.baseUrl && !isInvalid) {
               seenLinks.add(fullLink);
               newsList.push({
                 title,
