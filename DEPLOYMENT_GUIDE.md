@@ -162,8 +162,8 @@ mcp_ssh_ssh_background_task({
 ### 1. 克隆项目
 
 ```bash
-git clone https://gitee.com/liccolicco/openclaw-feishu-deploy.git
-cd openclaw-feishu-deploy
+git clone https://gitee.com/xxx/xxx.git
+cd xxx
 ```
 
 ### 2. 安装依赖
@@ -283,7 +283,7 @@ SSH MCP 是 Trae-CN 的 SSH 连接工具，可以：
 ```javascript
 // 配置 SSH 连接
 mcp_ssh_ssh_config({
-  host: "43.143.207.242",
+  host: "your_server_ip",
   port: 22,
   username: "root",
   password: "your_password"
@@ -296,7 +296,7 @@ mcp_ssh_ssh_config({
 
 ```bash
 Host news-server
-    HostName 43.143.207.242
+    HostName your_server_ip
     User root
     Port 22
     PasswordAuthentication yes
@@ -307,13 +307,13 @@ Host news-server
 ```bash
 # 使用 MCP 工具连接
 mcp_ssh_ssh_connect({
-  host: "43.143.207.242",
+  host: "your_server_ip",
   username: "root",
   password: "your_password"
 })
 
 # 或使用命令行
-ssh root@43.143.207.242
+ssh root@your_server_ip
 ```
 
 ### 4. 常用 SSH MCP 命令
@@ -357,7 +357,7 @@ mcp_ssh_ssh_task_status({
 ```javascript
 // 连接 SSH
 const session = await mcp_ssh_ssh_connect({
-  host: "43.143.207.242",
+  host: "your_server_ip",
   username: "root",
   password: "your_password"
 });
@@ -647,7 +647,7 @@ docker exec news-bot curl -X POST \
   https://ark.cn-beijing.volces.com/api/v3/chat/completions \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model":"ep-20260228235730-b8l6d","messages":[{"role":"user","content":"test"}]}'
+  -d '{"model":"${VOLCANO_MODEL}","messages":[{"role":"user","content":"test"}]}'
 ```
 
 ### 问题 5：图片生成失败
