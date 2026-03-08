@@ -6,6 +6,7 @@
 const axios = require('axios');
 const fs = require('fs').promises;
 const crypto = require('crypto');
+const FormData = require('form-data');
 
 class FeishuSender {
   constructor(config = {}) {
@@ -186,8 +187,10 @@ class FeishuSender {
       const imageName = imagePath.split('/').pop() || 'news.png';
 
       const formData = new FormData();
-      const blob = new Blob([imageBuffer], { type: 'image/png' });
-      formData.append('image', blob, imageName);
+      formData.append('image', imageBuffer, {
+        filename: imageName,
+        contentType: 'image/png'
+      });
       formData.append('image_type', 'message');
 
       const response = await axios.post(
@@ -196,7 +199,7 @@ class FeishuSender {
         {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
+            ...formData.getHeaders()
           }
         }
       );
