@@ -225,14 +225,21 @@ class NewsBot {
    * 默认每天10:30和22:30执行
    */
   startScheduledTask(cronExpression = '30 10,22 * * *') {
-    console.log(`启动定时任务，执行时间: ${cronExpression}`);
+    console.log(`启动定时任务，执行时间：${cronExpression}`);
     console.log('当前时间:', new Date().toLocaleString('zh-CN'));
+    
+    // 检查是否已有定时任务在运行
+    if (this.task) {
+      console.log('定时任务已在运行，跳过启动');
+      return;
+    }
     
     // 创建定时任务
     this.task = cron.schedule(cronExpression, async () => {
       await this.run();
     }, {
-      timezone: 'Asia/Shanghai'
+      timezone: 'Asia/Shanghai',
+      scheduled: true
     });
 
     console.log('定时任务已启动，等待执行...\n');
