@@ -217,23 +217,18 @@ class FeishuSender {
   }
 
   /**
-   * 发送新闻摘要卡片
-   * @param {string} receiveId - 接收者ID
+   * 发送新闻摘要卡片（只发送一次，包含图片的卡片）
+   * @param {string} receiveId - 接收者 ID
    * @param {Object} summaryData - 摘要数据
    * @param {string} imagePath - 图片路径
    * @returns {Object} 发送结果
    */
   async sendNewsSummary(receiveId, summaryData, imagePath = null) {
     try {
-      // 先发送图片
-      if (imagePath) {
-        await this.sendImageMessage(receiveId, imagePath);
-      }
-
-      // 构建卡片消息
-      const card = this.buildNewsCard(summaryData);
+      // 构建带图片的卡片消息
+      const card = this.buildNewsCard(summaryData, imagePath);
       
-      // 发送卡片
+      // 发送卡片（只发送一次）
       return await this.sendCardMessage(receiveId, card);
     } catch (error) {
       console.error('发送新闻摘要失败:', error);
@@ -244,10 +239,28 @@ class FeishuSender {
   /**
    * 构建新闻卡片
    * @param {Object} summaryData - 摘要数据
+   * @param {string} imagePath - 图片路径（可选）
    * @returns {Object} 卡片对象
    */
-  buildNewsCard(summaryData) {
-    const elements = [
+  async buildNewsCard(summaryData, imagePath = null) {
+    const elements = [];
+    
+    // 如果有图片，添加到卡片顶部
+    if (imagePath) {
+      try {
+        const imageKey = await this.uploadImage(imagePath);
+        elements.push({
+          tag: 'img',
+          img_key: imageKey,
+          alt: '今日新闻摘要'
+        });
+      } catch (error) {
+        console.error('卡片图片上传失败:', error.message);
+        // 图片上传失败不影响卡片发送
+      }
+    }
+    
+    elements.push(
       {
         tag: 'div',
         text: {
@@ -258,7 +271,7 @@ class FeishuSender {
       {
         tag: 'hr'
       }
-    ];
+    );
 
     // 收集已显示的新闻标题（用于排除重复）
     const shownTitles = new Set();
