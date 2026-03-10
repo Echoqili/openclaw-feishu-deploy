@@ -50,12 +50,16 @@ class ImageGenerator {
     try {
       // 尝试加载中文字体（按优先级排序）
       const possibleFonts = [
-        // Alpine Linux 中的 wqy-zenhei 字体（支持中文）
+        // Alpine Linux 中的 wqy-zenhei 字体（支持中文）- Docker 环境
         '/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc',
+        '/usr/share/fonts/wqy/wqy-zenhei.ttc',
+        // Alpine Linux 字体备选
+        '/usr/share/fonts/noto/NotoSansCJK-Regular.ttc',
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
         // 其他 Linux 发行版的中文字体
         '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
         '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
-        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
         // Windows 微软雅黑
         'C:\\Windows\\Fonts\\msyh.ttc',
         'C:\\Windows\\Fonts\\msyhbd.ttc',
@@ -65,20 +69,25 @@ class ImageGenerator {
         '/System/Library/Fonts/Hiragino Sans GB.ttc'
       ];
 
+      let fontLoaded = false;
       for (const fontPath of possibleFonts) {
         try {
           await fs.access(fontPath);
           registerFont(fontPath, { family: 'CustomFont' });
           console.log(`✓ 加载字体成功: ${fontPath}`);
-          return;
+          fontLoaded = true;
+          break;
         } catch (e) {
           // 字体不存在，继续尝试下一个
         }
       }
-      
-      console.warn('⚠ 未找到中文字体，将使用默认字体（可能显示乱码）');
+
+      if (!fontLoaded) {
+        throw new Error('未找到可用的中文字体，图片将显示乱码');
+      }
     } catch (error) {
       console.error('字体加载失败:', error.message);
+      throw error;
     }
   }
 

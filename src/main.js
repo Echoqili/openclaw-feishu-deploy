@@ -12,6 +12,11 @@ const ImageGenerator = require('./image_generator');
 const FeishuSender = require('./feishu_sender');
 const NewsHistory = require('./news_history');
 
+/**
+ * 进程锁文件路径
+ */
+const LOCK_FILE = path.join(process.env.OUTPUT_DIR || './output', '.news-bot.lock');
+
 class NewsBot {
   constructor(config = {}) {
     // 初始化各模块
@@ -42,6 +47,7 @@ class NewsBot {
     this.chatIds = config.feishuChatIds || [];
     this.isRunning = false;
     this.historyInitialized = false;
+    this.lockAcquired = false;
   }
 
   /**
@@ -55,9 +61,86 @@ class NewsBot {
   }
 
   /**
+   * 获取进程锁
+   */
+  async acquireLock() {
+    try {
+      // 创建锁目录
+      const lockDir = path.dirname(LOCK_FILE);
+      await fs.mkdir(lockDir, { recursive: true });
+      
+      // 尝试创建锁文件
+      const lockContent = `${process.pid}\n${new Date().toISOString()}`;
+      await fs.writeFile(LOCK_FILE, lockContent, { flag: 'wx' });
+      
+      this.lockAcquired = true;
+      console.log('✓ 进程锁已获取');
+      return true;
+    } catch (error) {
+      if (error.code === 'EEXIST') {
+        // 锁文件已存在，读取内容检查锁是否过期
+        try {
+          const lockContent = await fs.readFile(LOCK_FILE, 'utf-8');
+          const lines = lockContent.trim().split('\n');
+          const lockPid = parseInt(lines[0]);
+          const lockTime = new Date(lines[1]);
+          
+          // 如果锁超过 1 小时，认为已过期
+          const lockAge = Date.now() - lockTime.getTime();
+          if (lockAge > 60 * 60 * 1000) {
+            console.log('⚠️ 检测到过期锁，强制获取');
+            await fs.unlink(LOCK_FILE);
+            return this.acquireLock();
+          }
+          
+          // 检查进程是否还在运行
+          try {
+            process.kill(lockPid, 0); // 0 表示不发送信号，只检查进程是否存在
+            console.log(`⚠️ 另一个进程正在运行 (PID: ${lockPid})，本次执行跳过`);
+            return false;
+          } catch (e) {
+            // 进程不存在，可以获取锁
+            console.log('⚠️ 检测到孤儿锁，重新获取');
+            await fs.unlink(LOCK_FILE);
+            return this.acquireLock();
+          }
+        } catch (e) {
+          console.error('读取锁文件失败:', e.message);
+          return false;
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 释放进程锁
+   */
+  async releaseLock() {
+    if (this.lockAcquired) {
+      try {
+        await fs.unlink(LOCK_FILE);
+        console.log('✓ 进程锁已释放');
+        this.lockAcquired = false;
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          console.error('释放锁失败:', error.message);
+        }
+      }
+    }
+  }
+
+  /**
    * 执行完整的新闻抓取和推送流程
    */
   async run() {
+    // 尝试获取进程锁
+    const lockAcquired = await this.acquireLock();
+    if (!lockAcquired) {
+      console.log('⚠️ 无法获取进程锁，跳过本次执行');
+      return;
+    }
+
     if (this.isRunning) {
       console.log('任务正在运行中，跳过本次执行');
       return;
@@ -166,6 +249,8 @@ class NewsBot {
       });
     } finally {
       this.isRunning = false;
+      // 释放进程锁
+      await this.releaseLock();
     }
   }
 
