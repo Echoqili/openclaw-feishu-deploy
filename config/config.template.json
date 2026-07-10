@@ -1,4 +1,7 @@
 {
+  "aiApiKey": "${AI_API_KEY}",
+  "aiEndpoint": "${AI_ENDPOINT}",
+  "aiModel": "${AI_MODEL}",
   "volcanoApiKey": "${VOLCANO_API_KEY}",
   "volcanoApiSecret": "${VOLCANO_API_SECRET}",
   "volcanoEndpoint": "${VOLCANO_ENDPOINT}",

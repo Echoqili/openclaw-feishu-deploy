@@ -10,8 +10,8 @@ const FormData = require('form-data');
 
 class FeishuSender {
   constructor(config = {}) {
-    this.appId = config.appId || process.env.FEISHU_APP_ID || 'YOUR_FEISHU_APP_ID_HERE';
-    this.appSecret = config.appSecret || process.env.FEISHU_APP_SECRET || 'YOUR_FEISHU_APP_SECRET_HERE';
+    this.appId = config.appId || process.env.FEISHU_APP_ID || '';
+    this.appSecret = config.appSecret || process.env.FEISHU_APP_SECRET || '';
     this.baseURL = 'https://open.feishu.cn/open-apis';
     
     this.accessToken = null;

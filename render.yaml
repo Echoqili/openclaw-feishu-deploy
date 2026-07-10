@@ -1,0 +1,38 @@
+services:
+  - type: backgroundWorker
+    name: openclaw-news-bot
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: Asia/Shanghai
+      # NVIDIA API 配置（在 Render Dashboard 中设置为 Secret）
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_ENDPOINT
+        value: https://integrate.api.nvidia.com/v1/chat/completions
+      - key: AI_MODEL
+        value: meta/llama-3.1-70b-instruct
+      # 飞书配置（在 Render Dashboard 中设置为 Secret）
+      - key: FEISHU_APP_ID
+        sync: false
+      - key: FEISHU_APP_SECRET
+        sync: false
+      - key: FEISHU_CHAT_IDS
+        sync: false
+      # 新闻与定时配置
+      - key: NEWS_LIMIT
+        value: 50
+      - key: SELECTED_LIMIT
+        value: 20
+      - key: OUTPUT_DIR
+        value: ./output
+      - key: HISTORY_DIR
+        value: ./history
+      - key: MAX_HISTORY_DAYS
+        value: 7
+      - key: CRON_EXPRESSION
+        value: 30 10,22 * * *

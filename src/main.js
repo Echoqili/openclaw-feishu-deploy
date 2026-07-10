@@ -22,10 +22,10 @@ class NewsBot {
     // 初始化各模块
     this.crawler = new NewsCrawler();
     this.classifier = new NewsClassifier({
-      apiKey: config.volcanoApiKey,
-      apiSecret: config.volcanoApiSecret,
-      endpoint: config.volcanoEndpoint,
-      model: config.volcanoModel
+      apiKey: config.aiApiKey,
+      apiSecret: config.aiApiSecret,
+      endpoint: config.aiEndpoint,
+      model: config.aiModel
     });
     this.imageGenerator = new ImageGenerator({
       outputDir: config.outputDir || './output'
@@ -388,16 +388,17 @@ class NewsBot {
 async function main() {
   // 加载配置
   const config = {
-    // 火山引擎配置
-    volcanoApiKey: process.env.VOLCANO_API_KEY || 'YOUR_VOLCANO_API_KEY_HERE',
-    volcanoApiSecret: process.env.VOLCANO_API_SECRET || '',
-    volcanoEndpoint: process.env.VOLCANO_ENDPOINT || 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
-    
+    // AI 模型配置（默认 NVIDIA，兼容火山引擎旧配置）
+    aiApiKey: process.env.AI_API_KEY || process.env.VOLCANO_API_KEY || '',
+    aiApiSecret: process.env.AI_API_SECRET || process.env.VOLCANO_API_SECRET || '',
+    aiEndpoint: process.env.AI_ENDPOINT || process.env.VOLCANO_ENDPOINT || 'https://integrate.api.nvidia.com/v1/chat/completions',
+    aiModel: process.env.AI_MODEL || process.env.VOLCANO_MODEL || 'meta/llama-3.1-70b-instruct',
+
     // 飞书配置
-    feishuAppId: process.env.FEISHU_APP_ID || 'YOUR_FEISHU_APP_ID_HERE',
-    feishuAppSecret: process.env.FEISHU_APP_SECRET || 'YOUR_FEISHU_APP_SECRET_HERE',
+    feishuAppId: process.env.FEISHU_APP_ID || '',
+    feishuAppSecret: process.env.FEISHU_APP_SECRET || '',
     feishuChatIds: (process.env.FEISHU_CHAT_IDS || '').split(',').filter(Boolean),
-    
+
     // 其他配置
     newsLimit: parseInt(process.env.NEWS_LIMIT || '50'),
     selectedLimit: parseInt(process.env.SELECTED_LIMIT || '20'),
@@ -416,6 +417,12 @@ async function main() {
   } catch (e) {
     console.log('未找到配置文件，使用默认配置');
   }
+
+  // 兼容旧版配置文件中的火山引擎字段
+  config.aiApiKey = config.aiApiKey || config.volcanoApiKey || '';
+  config.aiApiSecret = config.aiApiSecret || config.volcanoApiSecret || '';
+  config.aiEndpoint = config.aiEndpoint || config.volcanoEndpoint || '';
+  config.aiModel = config.aiModel || config.volcanoModel || '';
 
   // 创建机器人实例
   const bot = new NewsBot(config);

@@ -1,13 +1,17 @@
 {
+  "aiApiKey": "your_nvidia_api_key_here",
+  "aiEndpoint": "https://integrate.api.nvidia.com/v1/chat/completions",
+  "aiModel": "meta/llama-3.1-70b-instruct",
+
   "volcanoApiKey": "your_volcano_api_key_here",
   "volcanoApiSecret": "",
   "volcanoEndpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
   "volcanoModel": "your_endpoint_id_here",
-  
+
   "feishuAppId": "your_feishu_app_id_here",
   "feishuAppSecret": "your_feishu_app_secret_here",
   "feishuChatIds": ["your_chat_id_here"],
-  
+
   "newsLimit": 50,
   "selectedLimit": 30,
   "outputDir": "./output",

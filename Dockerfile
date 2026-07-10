@@ -25,10 +25,7 @@ RUN npm install --only=production
 # 复制源代码
 COPY src ./src
 
-# 复制配置模板
-COPY config/config.template.json ./config/config.json
-
-# 创建必要的目录
+# 创建必要的目录（配置通过环境变量注入）
 RUN mkdir -p config output history logs
 
 # 设置时区

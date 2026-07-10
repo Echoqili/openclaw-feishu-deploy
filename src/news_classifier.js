@@ -7,10 +7,11 @@ const axios = require('axios');
 
 class NewsClassifier {
   constructor(config = {}) {
-    this.apiKey = config.apiKey || process.env.VOLCANO_API_KEY || 'YOUR_VOLCANO_API_KEY_HERE';
-    this.apiSecret = config.apiSecret || process.env.VOLCANO_API_SECRET || '';
-    this.endpoint = config.endpoint || 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
-    this.model = config.model || 'ep-20260213222914-h5r4d';
+    // 优先使用通用 AI 配置（NVIDIA 等），未配置时回退到火山引擎兼容配置
+    this.apiKey = config.apiKey || process.env.AI_API_KEY || process.env.VOLCANO_API_KEY || '';
+    this.apiSecret = config.apiSecret || process.env.AI_API_SECRET || process.env.VOLCANO_API_SECRET || '';
+    this.endpoint = config.endpoint || process.env.AI_ENDPOINT || process.env.VOLCANO_ENDPOINT || 'https://integrate.api.nvidia.com/v1/chat/completions';
+    this.model = config.model || process.env.AI_MODEL || process.env.VOLCANO_MODEL || 'meta/llama-3.1-70b-instruct';
     
     // 预定义新闻分类
     this.categories = [
@@ -266,10 +267,10 @@ if (require.main === module) {
       const configFile = await fs.readFile(configPath, 'utf-8');
       const fileConfig = JSON.parse(configFile);
       config = {
-        apiKey: fileConfig.volcanoApiKey,
-        apiSecret: fileConfig.volcanoApiSecret,
-        endpoint: fileConfig.volcanoEndpoint,
-        model: fileConfig.volcanoModel
+        apiKey: fileConfig.aiApiKey || fileConfig.volcanoApiKey,
+        apiSecret: fileConfig.aiApiSecret || fileConfig.volcanoApiSecret,
+        endpoint: fileConfig.aiEndpoint || fileConfig.volcanoEndpoint,
+        model: fileConfig.aiModel || fileConfig.volcanoModel
       };
       console.log('已加载配置文件');
     } catch (e) {
