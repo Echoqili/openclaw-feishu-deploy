@@ -205,9 +205,25 @@ class NewsBot {
 
       // 7. 推送到飞书
       console.log('[7/7] 推送到飞书...');
-      if (this.chatIds.length > 0) {
+      let targetChatIds = this.chatIds;
+      
+      // 如果未配置群ID，自动获取群列表
+      if (targetChatIds.length === 0) {
+        console.log('未配置飞书群ID，正在自动获取群列表...');
+        try {
+          const chatList = await this.sender.getChatList();
+          targetChatIds = chatList.map(chat => chat.chat_id).filter(Boolean);
+          console.log(`自动获取到 ${targetChatIds.length} 个群: ${targetChatIds.join(', ')}`);
+        } catch (error) {
+          console.error('获取群列表失败:', error.message);
+          console.log('跳过推送\n');
+          return;
+        }
+      }
+
+      if (targetChatIds.length > 0) {
         const results = await this.sender.sendToMultipleChats(
-          this.chatIds,
+          targetChatIds,
           summaryData,
           imagePath
         );
@@ -220,7 +236,7 @@ class NewsBot {
           await this.history.markAsSent(selectedNews);
         }
       } else {
-        console.log('警告: 未配置飞书群ID，跳过推送\n');
+        console.log('警告: 未找到可推送的飞书群，跳过推送\n');
       }
 
       // 8. 保存日志
