@@ -1,0 +1,19 @@
+{
+  "functions": {
+    "api/news.js": {
+      "runtime": "@vercel/node@3",
+      "memory": 512,
+      "maxDuration": 300
+    }
+  },
+  "env": {
+    "AI_API_KEY": "@ai_api_key",
+    "FEISHU_APP_ID": "@feishu_app_id",
+    "FEISHU_APP_SECRET": "@feishu_app_secret",
+    "AI_ENDPOINT": "https://integrate.api.nvidia.com/v1/chat/completions",
+    "AI_MODEL": "meta/llama-3.1-70b-instruct",
+    "NEWS_LIMIT": "50",
+    "SELECTED_LIMIT": "20",
+    "TZ": "Asia/Shanghai"
+  }
+}
