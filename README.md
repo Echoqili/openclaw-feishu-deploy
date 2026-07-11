@@ -3,7 +3,7 @@
 # OpenClaw 飞书新闻推送机器人
 
 [![Docker](https://img.shields.io/docker/pulls/news-bot/openclaw-feishu-deploy?style=flat-square)](https://hub.docker.com/r/news-bot/openclaw-feishu-deploy)
-[![Node.js](https://img.shields.io/badge/Node.js-14%2B-green?style=flat-square)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-24%2B-green?style=flat-square)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Gitee](https://img.shields.io/badge/Gitee-%E7%A0%81%E5%8C%96%E5%BC%80%E5%8F%91-orange?style=flat-square)](https://gitee.com/sun_53/openclaw-feishu-deploy)
 
@@ -89,28 +89,39 @@ services:
 docker-compose up -d
 ```
 
+### Vercel 部署
+
+适合不想维护服务器的场景，详见 [docs/VERCEL_DEPLOY_GUIDE.md](docs/VERCEL_DEPLOY_GUIDE.md)。
+
+1. 将代码推送到 GitHub
+2. 在 Vercel Dashboard 导入仓库
+3. 配置环境变量并部署
+4. （推荐）创建 Vercel Redis 用于持久化历史记录
+5. 使用 CronJob.org 定时触发 `/api/news`
+
+> Vercel Hobby 计划函数最长执行 60 秒，本项目已按此优化。
+
 ## 配置说明
 
 ### 环境变量 (.env)
 
 | 变量 | 说明 | 必需 | 默认值 |
 |-----|------|-----|-------|
-| `VOLCANO_API_KEY` | 火山引擎 API 密钥 | ✅ | - |
-| `VOLCANO_API_SECRET` | 火山引擎 API 密钥密码 | ✅ | - |
-| `VOLCANO_ENDPOINT` | API 端点 | ✅ | - |
-| `VOLCANO_MODEL` | 使用的模型 ID | ✅ | - |
+| `AI_API_KEY` | AI 平台 API 密钥 | ✅ | - |
+| `AI_ENDPOINT` | Chat Completions 接口地址 | ✅ | - |
+| `AI_MODEL` | 使用的模型 ID | ✅ | - |
 | `FEISHU_APP_ID` | 飞书应用 ID | ✅ | - |
 | `FEISHU_APP_SECRET` | 飞书应用密钥 | ✅ | - |
 | `FEISHU_CHAT_IDS` | 飞书群组 ID（逗号分隔） | ✅ | - |
 | `NEWS_LIMIT` | 抓取新闻数量限制 | ❌ | 50 |
-| `SELECTED_LIMIT` | 精选新闻数量限制 | ❌ | 20 |
+| `SELECTED_LIMIT` | 精选新闻数量限制 | ❌ | 30 |
 | `CRON_EXPRESSION` | 定时任务表达式 | ❌ | `0 10,22 * * *` |
 
-### 火山引擎配置
+### AI 模型配置
 
-1. 登录 [火山引擎控制台](https://www.volcengine.com/)
-2. 创建 API Key 和 Secret
-3. 选择合适的模型 endpoint
+1. 准备支持 OpenAI 兼容接口的 AI 平台账号（如 Agnes AI、SenseNova、火山引擎、NVIDIA 等）
+2. 获取 API Key、Endpoint 和模型名称
+3. 填入 `.env` 对应字段
 
 ### 飞书配置
 
