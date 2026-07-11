@@ -1,3 +1,7 @@
+// Vercel serverless 环境只能写入 /tmp 目录
+process.env.OUTPUT_DIR = process.env.OUTPUT_DIR || '/tmp/output';
+process.env.HISTORY_DIR = process.env.HISTORY_DIR || '/tmp/history';
+
 const NewsBot = require('../src/main');
 
 module.exports = async (req, res) => {
