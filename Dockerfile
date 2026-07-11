@@ -13,8 +13,8 @@ WORKDIR /app
 # 复制 package 文件
 COPY package*.json ./
 
-# 安装生产依赖
-RUN npm ci --omit=dev
+# 安装生产依赖（使用 npm install 以兼容可能不同步的 lock 文件）
+RUN npm install --omit=dev
 
 # 复制源代码
 COPY src ./src
