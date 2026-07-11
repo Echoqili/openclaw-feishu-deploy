@@ -299,7 +299,7 @@ class NewsBot {
     // 选择各分类的代表性新闻（确保多样性）
     const selected = [];
     const categoryCount = {};
-    const maxPerCategory = 5; // 每个分类最多5条
+    const maxPerCategory = Math.max(5, Math.ceil(limit / 5)); // 动态上限，保证能选够 limit 条
 
     for (const news of scored) {
       if (selected.length >= limit) break;
