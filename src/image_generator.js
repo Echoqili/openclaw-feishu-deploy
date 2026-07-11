@@ -10,7 +10,7 @@ const path = require('path');
 class ImageGenerator {
   constructor(config = {}) {
     this.width = config.width || 1080;
-    this.height = config.height || 1920;
+    this.height = config.height || 2560;
     this.outputDir = config.outputDir || './output';
     this.fontPath = config.fontPath || null;
     
@@ -48,42 +48,60 @@ class ImageGenerator {
    */
   async initFonts() {
     try {
-      // 尝试加载中文字体（按优先级排序）
-      const possibleFonts = [
-        // Alpine Linux 中的 wqy-zenhei 字体（支持中文）- Docker 环境
+      // 分别加载 Regular 和 Bold 中文字体
+      const regularFonts = [
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+        '/usr/share/fonts/noto/NotoSansCJK-Regular.ttc',
+        '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
         '/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc',
         '/usr/share/fonts/wqy/wqy-zenhei.ttc',
-        // Alpine Linux 字体备选
-        '/usr/share/fonts/noto/NotoSansCJK-Regular.ttc',
-        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
-        // 其他 Linux 发行版的中文字体
         '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
-        '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
         '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-        // Windows 微软雅黑
         'C:\\Windows\\Fonts\\msyh.ttc',
-        'C:\\Windows\\Fonts\\msyhbd.ttc',
-        // macOS 字体
         '/System/Library/Fonts/PingFang.ttc',
         '/System/Library/Fonts/STHeiti Light.ttc',
         '/System/Library/Fonts/Hiragino Sans GB.ttc'
       ];
 
-      let fontLoaded = false;
-      for (const fontPath of possibleFonts) {
+      const boldFonts = [
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc',
+        '/usr/share/fonts/noto/NotoSansCJK-Bold.ttc',
+        '/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        'C:\\Windows\\Fonts\\msyhbd.ttc'
+      ];
+
+      let regularLoaded = false;
+      for (const fontPath of regularFonts) {
         try {
           await fs.access(fontPath);
           GlobalFonts.registerFromPath(fontPath, 'CustomFont');
-          console.log(`✓ 加载字体成功: ${fontPath}`);
-          fontLoaded = true;
+          console.log(`✓ 加载常规字体成功: ${fontPath}`);
+          regularLoaded = true;
           break;
         } catch (e) {
           // 字体不存在或注册失败，继续尝试下一个
         }
       }
 
-      if (!fontLoaded) {
+      let boldLoaded = false;
+      for (const fontPath of boldFonts) {
+        try {
+          await fs.access(fontPath);
+          GlobalFonts.registerFromPath(fontPath, 'CustomFontBold');
+          console.log(`✓ 加载粗体字体成功: ${fontPath}`);
+          boldLoaded = true;
+          break;
+        } catch (e) {
+          // 字体不存在或注册失败，继续尝试下一个
+        }
+      }
+
+      if (!regularLoaded && !boldLoaded) {
         throw new Error('未找到可用的中文字体，图片将显示乱码');
+      }
+      if (!regularLoaded) {
+        throw new Error('未找到常规中文字体');
       }
     } catch (error) {
       console.error('字体加载失败:', error.message);
@@ -175,7 +193,7 @@ class ImageGenerator {
 
     // 主标题
     ctx.fillStyle = this.colors.text;
-    ctx.font = 'bold 48px CustomFont, Arial, sans-serif';
+    ctx.font = '48px CustomFontBold, CustomFont, Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('📊 今日新闻摘要', this.width / 2, headerY);
 
@@ -189,7 +207,7 @@ class ImageGenerator {
     });
     
     ctx.fillStyle = this.colors.textSecondary;
-    ctx.font = '24px CustomFont, Arial, sans-serif';
+    ctx.font = '24px CustomFont, CustomFontBold, Arial, sans-serif';
     ctx.fillText(dateStr, this.width / 2, headerY + 50);
   }
 
@@ -217,13 +235,13 @@ class ImageGenerator {
       
       // 数值
       ctx.fillStyle = item.color;
-      ctx.font = 'bold 36px CustomFont, Arial, sans-serif';
+      ctx.font = '36px CustomFontBold, CustomFont, Arial, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(item.value, x + cardWidth / 2, startY + 45);
       
       // 标签
       ctx.fillStyle = this.colors.textSecondary;
-      ctx.font = '20px CustomFont, Arial, sans-serif';
+      ctx.font = '20px CustomFont, CustomFontBold, Arial, sans-serif';
       ctx.fillText(item.label, x + cardWidth / 2, startY + 75);
     });
   }
@@ -238,13 +256,13 @@ class ImageGenerator {
     const cardWidth = this.width - padding * 2;
     let currentY = startY;
     
-    // 限制图片上显示的重要新闻数量（最多10条）
-    const displayNews = importantNews.slice(0, 10);
+    // 限制图片上显示的重要新闻数量（最多15条）
+    const displayNews = importantNews.slice(0, 15);
     const displayCount = displayNews.length;
 
     // 重要新闻标题
     ctx.fillStyle = '#FF9800';
-    ctx.font = 'bold 26px CustomFont, Arial, sans-serif';
+    ctx.font = '26px CustomFontBold, CustomFont, Arial, sans-serif';
     ctx.textAlign = 'left';
     const displayText = displayCount < totalCount 
       ? `🔴 重要新闻 (展示${displayCount}条/共${totalCount}条)` 
@@ -260,12 +278,12 @@ class ImageGenerator {
 
       // 序号
       ctx.fillStyle = '#FF9800';
-      ctx.font = 'bold 20px CustomFont, Arial, sans-serif';
+      ctx.font = '20px CustomFontBold, CustomFont, Arial, sans-serif';
       ctx.fillText(`${index + 1}.`, padding + 10, currentY);
 
       // 标题
       ctx.fillStyle = this.colors.text;
-      ctx.font = '20px CustomFont, Arial, sans-serif';
+      ctx.font = '20px CustomFont, CustomFontBold, Arial, sans-serif';
       const maxWidth = cardWidth - 60;
       const title = this.truncateText(ctx, news.title, maxWidth);
       ctx.fillText(title, padding + 50, currentY);
@@ -274,7 +292,7 @@ class ImageGenerator {
       // 摘要
       if (news.classification?.summary) {
         ctx.fillStyle = this.colors.textSecondary;
-        ctx.font = '16px CustomFont, Arial, sans-serif';
+        ctx.font = '16px CustomFont, CustomFontBold, Arial, sans-serif';
         const summary = this.truncateText(ctx, news.classification.summary, maxWidth - 20);
         ctx.fillText(summary, padding + 50, currentY);
         currentY += 28;
@@ -306,15 +324,15 @@ class ImageGenerator {
       const filteredNews = newsList.filter(n => !shownTitles.has(n.title));
       if (filteredNews.length === 0) return;
       
-      // 限制每个分类在图片上显示的数量（最多3条）
-      const displayNews = filteredNews.slice(0, 3);
+      // 限制每个分类在图片上显示的数量（最多5条）
+      const displayNews = filteredNews.slice(0, 5);
       const displayCount = displayNews.length;
       const totalCount = filteredNews.length;
 
       // 分类标题
       const categoryColor = this.colors.categoryColors[category] || this.colors.categoryColors['其他'];
       ctx.fillStyle = categoryColor;
-      ctx.font = 'bold 24px CustomFont, Arial, sans-serif';
+      ctx.font = '24px CustomFontBold, CustomFont, Arial, sans-serif';
       const categoryText = displayCount < totalCount 
         ? `【${category}】(展示${displayCount}条/共${totalCount}条)` 
         : `【${category}】(${totalCount}条)`;
@@ -329,12 +347,12 @@ class ImageGenerator {
 
         // 序号
         ctx.fillStyle = categoryColor;
-        ctx.font = 'bold 18px CustomFont, Arial, sans-serif';
+        ctx.font = '18px CustomFontBold, CustomFont, Arial, sans-serif';
         ctx.fillText(`${index + 1}.`, padding + 10, currentY);
 
         // 标题
         ctx.fillStyle = this.colors.text;
-        ctx.font = '18px CustomFont, Arial, sans-serif';
+        ctx.font = '18px CustomFont, CustomFontBold, Arial, sans-serif';
         const maxWidth = cardWidth - 60;
         const title = this.truncateText(ctx, news.title, maxWidth);
         ctx.fillText(title, padding + 50, currentY);
@@ -343,7 +361,7 @@ class ImageGenerator {
         // 摘要
         if (news.classification?.summary) {
           ctx.fillStyle = this.colors.textSecondary;
-          ctx.font = '14px CustomFont, Arial, sans-serif';
+          ctx.font = '14px CustomFont, CustomFontBold, Arial, sans-serif';
           const summary = this.truncateText(ctx, news.classification.summary, maxWidth - 20);
           ctx.fillText(summary, padding + 50, currentY);
           currentY += 24;
@@ -361,7 +379,7 @@ class ImageGenerator {
    */
   drawFooter(ctx) {
     ctx.fillStyle = this.colors.textSecondary;
-    ctx.font = '16px CustomFont, Arial, sans-serif';
+    ctx.font = '16px CustomFont, CustomFontBold, Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('数据来源: ZAKER | 由 AI 自动生成', this.width / 2, this.height - 40);
   }
