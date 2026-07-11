@@ -1,4 +1,4 @@
-FROM node:24-slim
+FROM node:22-slim
 
 # 安装中文字体和基础依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
