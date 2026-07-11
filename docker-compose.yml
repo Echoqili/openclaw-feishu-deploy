@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  news-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: news-bot
+    restart: unless-stopped
+    environment:
+      # AI 模型配置 (agnes-ai)
+      AI_API_KEY: ${AI_API_KEY}
+      AI_ENDPOINT: ${AI_ENDPOINT:-https://apihub.agnes-ai.com/v1}
+      AI_MODEL: ${AI_MODEL:-default}
+
+      # 飞书机器人配置
+      FEISHU_APP_ID: ${FEISHU_APP_ID}
+      FEISHU_APP_SECRET: ${FEISHU_APP_SECRET}
+      FEISHU_CHAT_IDS: ${FEISHU_CHAT_IDS}
+
+      # 新闻抓取配置
+      NEWS_LIMIT: ${NEWS_LIMIT:-50}
+      SELECTED_LIMIT: ${SELECTED_LIMIT:-30}
+      OUTPUT_DIR: ${OUTPUT_DIR:-./output}
+      HISTORY_DIR: ${HISTORY_DIR:-./history}
+      MAX_HISTORY_DAYS: ${MAX_HISTORY_DAYS:-7}
+
+      # 定时任务配置
+      CRON_EXPRESSION: ${CRON_EXPRESSION:-30 10,22 * * *}
+
+      # 时区
+      TZ: Asia/Shanghai
+    volumes:
+      - ./output:/app/output
+      - ./history:/app/history
+      - ./logs:/app/logs
+    networks:
+      - news-bot-net
+
+networks:
+  news-bot-net:
+    driver: bridge
