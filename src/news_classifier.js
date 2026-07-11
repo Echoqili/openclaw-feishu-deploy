@@ -12,7 +12,7 @@ class NewsClassifier {
     this.apiSecret = config.apiSecret || process.env.AI_API_SECRET || process.env.VOLCANO_API_SECRET || '';
     this.endpoint = config.endpoint || process.env.AI_ENDPOINT || process.env.VOLCANO_ENDPOINT || 'https://integrate.api.nvidia.com/v1/chat/completions';
     this.model = config.model || process.env.AI_MODEL || process.env.VOLCANO_MODEL || 'meta/llama-3.1-70b-instruct';
-    this.batchSize = config.batchSize || parseInt(process.env.CLASSIFY_BATCH_SIZE || '10', 10);
+    this.batchSize = config.batchSize || parseInt(process.env.CLASSIFY_BATCH_SIZE || '15', 10);
 
     // 预定义新闻分类
     this.categories = [
@@ -220,7 +220,7 @@ ${newsList.map((news, index) => `${index + 1}. 标题：${news.title}\n描述：
 
       // 批次间短暂暂停，避免 RPM 限流
       if (i + batchSize < newsList.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
 
