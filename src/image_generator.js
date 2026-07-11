@@ -13,7 +13,8 @@ class ImageGenerator {
     this.height = config.height || 2560;
     this.outputDir = config.outputDir || './output';
     this.fontPath = config.fontPath || null;
-    
+    this.maxDisplayItems = config.maxDisplayItems || 30;
+
     // 颜色主题
     this.colors = {
       background: '#1a1a2e',
@@ -140,8 +141,11 @@ class ImageGenerator {
       // 绘制重要新闻
       currentY = this.drawImportantNews(ctx, summaryData.importantNews, summaryData.stats.highImportance, shownTitles, currentY);
 
+      // 计算分类新闻剩余展示配额
+      const remainingLimit = this.maxDisplayItems - shownTitles.size;
+
       // 绘制分类新闻（排除重要新闻）
-      currentY = this.drawCategoryNews(ctx, summaryData.groupedNews, shownTitles, currentY);
+      currentY = this.drawCategoryNews(ctx, summaryData.groupedNews, shownTitles, currentY, remainingLimit);
 
       // 绘制底部信息
       this.drawFooter(ctx);
@@ -256,8 +260,8 @@ class ImageGenerator {
     const cardWidth = this.width - padding * 2;
     let currentY = startY;
     
-    // 限制图片上显示的重要新闻数量（最多20条）
-    const displayNews = importantNews.slice(0, 20);
+    // 限制图片上显示的重要新闻数量（不超过总展示上限）
+    const displayNews = importantNews.slice(0, this.maxDisplayItems);
     const displayCount = displayNews.length;
 
     // 重要新闻标题
@@ -305,10 +309,11 @@ class ImageGenerator {
   /**
    * 绘制分类新闻
    */
-  drawCategoryNews(ctx, groupedNews, shownTitles, startY) {
+  drawCategoryNews(ctx, groupedNews, shownTitles, startY, remainingLimit = null) {
     const padding = 40;
     const cardWidth = this.width - padding * 2;
     let currentY = startY;
+    let categoryRemaining = remainingLimit ?? this.maxDisplayItems;
 
     // 分隔线
     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
@@ -319,14 +324,16 @@ class ImageGenerator {
     const categories = Object.entries(groupedNews);
     categories.forEach(([category, newsList]) => {
       if (currentY > this.height - 150) return;
+      if (categoryRemaining <= 0) return;
 
       // 过滤掉已显示的新闻
       const filteredNews = newsList.filter(n => !shownTitles.has(n.title));
       if (filteredNews.length === 0) return;
-      
-      // 限制每个分类在图片上显示的数量（最多8条）
-      const displayNews = filteredNews.slice(0, 8);
+
+      // 限制每个分类在图片上显示的数量（最多8条，且不超过剩余配额）
+      const displayNews = filteredNews.slice(0, Math.min(8, categoryRemaining));
       const displayCount = displayNews.length;
+      categoryRemaining -= displayCount;
       const totalCount = filteredNews.length;
 
       // 分类标题

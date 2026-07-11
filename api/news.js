@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
       feishuChatIds: (process.env.FEISHU_CHAT_IDS || '').split(',').filter(Boolean),
 
       newsLimit: parseInt(process.env.NEWS_LIMIT || '50'),
-      selectedLimit: parseInt(process.env.SELECTED_LIMIT || '20'),
+      selectedLimit: parseInt(process.env.SELECTED_LIMIT || '30'),
       outputDir: '/tmp/output',
       historyDir: '/tmp/history',
       maxHistoryDays: parseInt(process.env.MAX_HISTORY_DAYS || '7'),

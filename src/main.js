@@ -28,7 +28,8 @@ class NewsBot {
       model: config.aiModel
     });
     this.imageGenerator = new ImageGenerator({
-      outputDir: config.outputDir || './output'
+      outputDir: config.outputDir || './output',
+      maxDisplayItems: config.selectedLimit || 30
     });
     this.sender = new FeishuSender({
       appId: config.feishuAppId,
@@ -417,7 +418,7 @@ async function main() {
 
     // 其他配置
     newsLimit: parseInt(process.env.NEWS_LIMIT || '50'),
-    selectedLimit: parseInt(process.env.SELECTED_LIMIT || '20'),
+    selectedLimit: parseInt(process.env.SELECTED_LIMIT || '30'),
     outputDir: process.env.OUTPUT_DIR || './output',
     historyDir: process.env.HISTORY_DIR || './history',
     maxHistoryDays: parseInt(process.env.MAX_HISTORY_DAYS || '7')
