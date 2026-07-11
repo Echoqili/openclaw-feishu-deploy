@@ -195,7 +195,7 @@ class ImageGenerator {
     ctx.fillStyle = this.colors.text;
     ctx.font = '48px CustomFontBold, CustomFont, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('📊 今日新闻摘要', this.width / 2, headerY);
+    ctx.fillText('今日新闻摘要', this.width / 2, headerY);
 
     // 日期
     const today = new Date();
@@ -256,8 +256,8 @@ class ImageGenerator {
     const cardWidth = this.width - padding * 2;
     let currentY = startY;
     
-    // 限制图片上显示的重要新闻数量（最多15条）
-    const displayNews = importantNews.slice(0, 15);
+    // 限制图片上显示的重要新闻数量（最多20条）
+    const displayNews = importantNews.slice(0, 20);
     const displayCount = displayNews.length;
 
     // 重要新闻标题
@@ -265,41 +265,41 @@ class ImageGenerator {
     ctx.font = '26px CustomFontBold, CustomFont, Arial, sans-serif';
     ctx.textAlign = 'left';
     const displayText = displayCount < totalCount 
-      ? `🔴 重要新闻 (展示${displayCount}条/共${totalCount}条)` 
-      : `🔴 重要新闻 (${totalCount}条)`;
+      ? `重要新闻 (展示${displayCount}条/共${totalCount}条)` 
+      : `重要新闻 (${totalCount}条)`;
     ctx.fillText(displayText, padding, currentY);
-    currentY += 40;
+    currentY += 30;
 
     // 绘制每条重要新闻
     displayNews.forEach((news, index) => {
-      if (currentY > this.height - 150) return; // 防止超出画布
+      if (currentY > this.height - 120) return; // 防止超出画布
       
       shownTitles.add(news.title);
 
       // 序号
       ctx.fillStyle = '#FF9800';
-      ctx.font = '20px CustomFontBold, CustomFont, Arial, sans-serif';
+      ctx.font = '18px CustomFontBold, CustomFont, Arial, sans-serif';
       ctx.fillText(`${index + 1}.`, padding + 10, currentY);
 
       // 标题
       ctx.fillStyle = this.colors.text;
-      ctx.font = '20px CustomFont, CustomFontBold, Arial, sans-serif';
+      ctx.font = '18px CustomFont, CustomFontBold, Arial, sans-serif';
       const maxWidth = cardWidth - 60;
       const title = this.truncateText(ctx, news.title, maxWidth);
-      ctx.fillText(title, padding + 50, currentY);
-      currentY += 30;
+      ctx.fillText(title, padding + 40, currentY);
+      currentY += 24;
 
       // 摘要
       if (news.classification?.summary) {
         ctx.fillStyle = this.colors.textSecondary;
-        ctx.font = '16px CustomFont, CustomFontBold, Arial, sans-serif';
+        ctx.font = '14px CustomFont, CustomFontBold, Arial, sans-serif';
         const summary = this.truncateText(ctx, news.classification.summary, maxWidth - 20);
-        ctx.fillText(summary, padding + 50, currentY);
-        currentY += 28;
+        ctx.fillText(summary, padding + 40, currentY);
+        currentY += 22;
       }
     });
 
-    return currentY + 20;
+    return currentY + 12;
   }
 
   /**
@@ -324,8 +324,8 @@ class ImageGenerator {
       const filteredNews = newsList.filter(n => !shownTitles.has(n.title));
       if (filteredNews.length === 0) return;
       
-      // 限制每个分类在图片上显示的数量（最多5条）
-      const displayNews = filteredNews.slice(0, 5);
+      // 限制每个分类在图片上显示的数量（最多8条）
+      const displayNews = filteredNews.slice(0, 8);
       const displayCount = displayNews.length;
       const totalCount = filteredNews.length;
 
@@ -337,38 +337,38 @@ class ImageGenerator {
         ? `【${category}】(展示${displayCount}条/共${totalCount}条)` 
         : `【${category}】(${totalCount}条)`;
       ctx.fillText(categoryText, padding, currentY);
-      currentY += 35;
+      currentY += 28;
 
       // 绘制每条新闻
       displayNews.forEach((news, index) => {
-        if (currentY > this.height - 120) return;
+        if (currentY > this.height - 100) return;
         
         shownTitles.add(news.title);
 
         // 序号
         ctx.fillStyle = categoryColor;
-        ctx.font = '18px CustomFontBold, CustomFont, Arial, sans-serif';
+        ctx.font = '16px CustomFontBold, CustomFont, Arial, sans-serif';
         ctx.fillText(`${index + 1}.`, padding + 10, currentY);
 
         // 标题
         ctx.fillStyle = this.colors.text;
-        ctx.font = '18px CustomFont, CustomFontBold, Arial, sans-serif';
+        ctx.font = '16px CustomFont, CustomFontBold, Arial, sans-serif';
         const maxWidth = cardWidth - 60;
         const title = this.truncateText(ctx, news.title, maxWidth);
-        ctx.fillText(title, padding + 50, currentY);
-        currentY += 28;
+        ctx.fillText(title, padding + 40, currentY);
+        currentY += 22;
 
         // 摘要
         if (news.classification?.summary) {
           ctx.fillStyle = this.colors.textSecondary;
-          ctx.font = '14px CustomFont, CustomFontBold, Arial, sans-serif';
+          ctx.font = '12px CustomFont, CustomFontBold, Arial, sans-serif';
           const summary = this.truncateText(ctx, news.classification.summary, maxWidth - 20);
-          ctx.fillText(summary, padding + 50, currentY);
-          currentY += 24;
+          ctx.fillText(summary, padding + 40, currentY);
+          currentY += 20;
         }
       });
 
-      currentY += 15;
+      currentY += 10;
     });
 
     return currentY;
