@@ -3,6 +3,8 @@
  * 整合所有模块，实现定时任务
  */
 
+require('dotenv').config();
+
 const cron = require('node-cron');
 const fs = require('fs').promises;
 const path = require('path');
