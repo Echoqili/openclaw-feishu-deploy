@@ -113,7 +113,6 @@ FEISHU_APP_SECRET=你的飞书AppSecret
 # 可选配置（保持默认即可）
 NEWS_LIMIT=50
 SELECTED_LIMIT=20
-TZ=Asia/Shanghai
 ```
 
 > **注意**：`FEISHU_CHAT_IDS` 不需要配置，机器人会自动获取所有已加入的群并推送。
@@ -227,7 +226,8 @@ jobs:
 | `AI_MODEL` | AI 模型名称 | `meta/llama-3.1-70b-instruct` |
 | `NEWS_LIMIT` | 每次抓取新闻数量 | `50` |
 | `SELECTED_LIMIT` | 精选新闻数量 | `20` |
-| `TZ` | 时区 | `Asia/Shanghai` |
+
+> **注意**：时区已在代码中硬编码为 `Asia/Shanghai`，无需配置 `TZ` 环境变量（Vercel 保留了此变量名）。
 
 ---
 

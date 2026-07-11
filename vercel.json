@@ -13,7 +13,6 @@
     "AI_ENDPOINT": "https://integrate.api.nvidia.com/v1/chat/completions",
     "AI_MODEL": "meta/llama-3.1-70b-instruct",
     "NEWS_LIMIT": "50",
-    "SELECTED_LIMIT": "20",
-    "TZ": "Asia/Shanghai"
+    "SELECTED_LIMIT": "20"
   }
 }
