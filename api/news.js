@@ -2,6 +2,8 @@
 process.env.OUTPUT_DIR = process.env.OUTPUT_DIR || '/tmp/output';
 process.env.HISTORY_DIR = process.env.HISTORY_DIR || '/tmp/history';
 
+const fs = require('fs').promises;
+const path = require('path');
 const NewsBot = require('../src/main');
 
 module.exports = async (req, res) => {
@@ -12,6 +14,15 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // 清理可能残留的锁文件（Vercel 函数超时后不会自动释放）
+    const lockFile = path.join(process.env.OUTPUT_DIR || '/tmp/output', '.news-bot.lock');
+    try {
+      await fs.unlink(lockFile);
+      console.log('已清理残留锁文件');
+    } catch (e) {
+      // 锁文件不存在，忽略
+    }
+
     const config = {
       aiApiKey: process.env.AI_API_KEY || process.env.VOLCANO_API_KEY || '',
       aiApiSecret: process.env.AI_API_SECRET || process.env.VOLCANO_API_SECRET || '',
