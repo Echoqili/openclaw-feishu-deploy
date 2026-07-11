@@ -12,7 +12,8 @@ class NewsClassifier {
     this.apiSecret = config.apiSecret || process.env.AI_API_SECRET || process.env.VOLCANO_API_SECRET || '';
     this.endpoint = config.endpoint || process.env.AI_ENDPOINT || process.env.VOLCANO_ENDPOINT || 'https://integrate.api.nvidia.com/v1/chat/completions';
     this.model = config.model || process.env.AI_MODEL || process.env.VOLCANO_MODEL || 'meta/llama-3.1-70b-instruct';
-    
+    this.batchSize = config.batchSize || parseInt(process.env.CLASSIFY_BATCH_SIZE || '10', 10);
+
     // 预定义新闻分类
     this.categories = [
       '科技',
@@ -131,35 +132,98 @@ class NewsClassifier {
   }
 
   /**
+   * 对多条新闻进行一次 prompt 批量分类
+   * @param {Array} newsList - 新闻列表（建议 5-15 条）
+   * @returns {Array} 分类后的新闻列表
+   */
+  async classifyMultipleNews(newsList) {
+    if (!newsList || newsList.length === 0) return [];
+
+    const prompt = `请对以下 ${newsList.length} 条新闻进行分类和总结，按原始顺序返回 JSON 数组。
+
+分类要求：
+- category: 从以下分类中选择一个最合适的：${this.categories.join('、')}
+- keywords: 关键词数组（3 个左右）
+- summary: 新闻摘要（50 字以内）
+- importance: 重要程度（高/中/低）
+- sentiment: 情感倾向（正面/中性/负面）
+
+新闻列表：
+${newsList.map((news, index) => `${index + 1}. 标题：${news.title}\n描述：${news.description || '无描述'}`).join('\n\n')}
+
+请严格返回以下格式的 JSON 数组，不要添加任何其他文字：
+[
+  {"category": "...", "keywords": ["..."], "summary": "...", "importance": "...", "sentiment": "..."},
+  ...
+]`;
+
+    try {
+      const response = await this.callModel(prompt, {
+        temperature: 0.3,
+        maxTokens: 500 + newsList.length * 200
+      });
+
+      // 提取 JSON 数组
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        throw new Error('未找到 JSON 数组');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(parsed) || parsed.length !== newsList.length) {
+        throw new Error(`返回数组长度不匹配：期望 ${newsList.length}，实际 ${parsed?.length}`);
+      }
+
+      return newsList.map((news, index) => {
+        const item = parsed[index] || {};
+        return {
+          ...news,
+          classification: {
+            category: this.categories.includes(item.category) ? item.category : '其他',
+            keywords: Array.isArray(item.keywords) ? item.keywords : [],
+            summary: (item.summary || news.title).substring(0, 50),
+            importance: ['高', '中', '低'].includes(item.importance) ? item.importance : '中',
+            sentiment: ['正面', '中性', '负面'].includes(item.sentiment) ? item.sentiment : '中性'
+          }
+        };
+      });
+    } catch (error) {
+      console.error(`批量分类失败（${newsList.length}条）:`, error.message);
+      // 回退到单条分类
+      const fallbackResults = [];
+      for (const news of newsList) {
+        fallbackResults.push(await this.classifySingleNews(news));
+      }
+      return fallbackResults;
+    }
+  }
+
+  /**
    * 批量分类新闻
    * @param {Array} newsList - 新闻列表
    * @returns {Array} 分类后的新闻列表
    */
   async classifyNewsBatch(newsList) {
     console.log(`开始对 ${newsList.length} 条新闻进行分类...`);
-    
+
     const results = [];
-    const batchSize = 5; // 每批处理5条，避免并发过多
-    
+    const batchSize = Math.max(1, this.batchSize);
+
     for (let i = 0; i < newsList.length; i += batchSize) {
       const batch = newsList.slice(i, i + batchSize);
-      
-      // 并发处理一批新闻
-      const batchResults = await Promise.all(
-        batch.map(news => this.classifySingleNews(news))
-      );
-      
+
+      // 一次 prompt 批量分类
+      const batchResults = await this.classifyMultipleNews(batch);
       results.push(...batchResults);
-      
-      // 打印进度
+
       console.log(`已分类 ${Math.min(i + batchSize, newsList.length)}/${newsList.length} 条新闻`);
-      
-      // 批次间暂停，避免API限流
+
+      // 批次间短暂暂停，避免 RPM 限流
       if (i + batchSize < newsList.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
-    
+
     console.log('新闻分类完成！');
     return results;
   }
