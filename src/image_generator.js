@@ -3,7 +3,7 @@
  * 使用 Canvas 生成新闻摘要图片
  */
 
-const { createCanvas, loadImage, registerFont } = require('canvas');
+const { createCanvas, loadImage, registerFont } = require('@napi-rs/canvas');
 const fs = require('fs').promises;
 const path = require('path');
 
