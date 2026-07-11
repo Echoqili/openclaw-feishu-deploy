@@ -113,7 +113,7 @@ docker-compose up -d
 | `FEISHU_APP_ID` | 飞书应用 ID | ✅ | - |
 | `FEISHU_APP_SECRET` | 飞书应用密钥 | ✅ | - |
 | `FEISHU_CHAT_IDS` | 飞书群组 ID（逗号分隔） | ✅ | - |
-| `NEWS_LIMIT` | 抓取新闻数量限制 | ❌ | 50 |
+| `NEWS_LIMIT` | 抓取新闻数量限制 | ❌ | 30 |
 | `SELECTED_LIMIT` | 精选新闻数量限制 | ❌ | 30 |
 | `CRON_EXPRESSION` | 定时任务表达式 | ❌ | `0 10,22 * * *` |
 

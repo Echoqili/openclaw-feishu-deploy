@@ -102,8 +102,8 @@ FEISHU_APP_ID=cli_xxxxxxxxxxxxxx
 FEISHU_APP_SECRET=xxxxxxxxxxxxxxxxxxxx
 FEISHU_CHAT_IDS=oc_xxxxxxxxxxxxxxxx          # 若未开通群列表权限则必填
 
-# 可选配置
-NEWS_LIMIT=50
+# 可选配置（Vercel Hobby 建议 NEWS_LIMIT=30 以内，避免 60 秒超时）
+NEWS_LIMIT=30
 SELECTED_LIMIT=30
 MAX_HISTORY_DAYS=7
 ```
@@ -204,7 +204,7 @@ jobs:
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | `FEISHU_CHAT_IDS` | 飞书群 ID（多个逗号分隔） | 自动获取（需权限） |
-| `NEWS_LIMIT` | 每次抓取新闻数量 | `50` |
+| `NEWS_LIMIT` | 每次抓取新闻数量 | `30`（Vercel Hobby 建议 ≤30） |
 | `SELECTED_LIMIT` | 精选新闻数量 | `30` |
 | `MAX_HISTORY_DAYS` | 历史记录保留天数 | `7` |
 | `CLASSIFY_BATCH_SIZE` | 每次分类的新闻条数 | `15` |

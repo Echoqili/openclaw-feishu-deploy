@@ -419,7 +419,7 @@ async function main() {
     feishuChatIds: (process.env.FEISHU_CHAT_IDS || '').split(',').filter(Boolean),
 
     // 其他配置
-    newsLimit: parseInt(process.env.NEWS_LIMIT || '50'),
+    newsLimit: parseInt(process.env.NEWS_LIMIT || '30'),
     selectedLimit: parseInt(process.env.SELECTED_LIMIT || '30'),
     outputDir: process.env.OUTPUT_DIR || './output',
     historyDir: process.env.HISTORY_DIR || './history',
