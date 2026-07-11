@@ -62,7 +62,7 @@ class NewsClassifier {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`
         },
-        timeout: 30000
+        timeout: parseInt(process.env.AI_TIMEOUT || '60000')
       });
 
       return response.data.choices[0].message.content;
