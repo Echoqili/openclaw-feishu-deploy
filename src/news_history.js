@@ -101,6 +101,10 @@ class NewsHistory {
         console.log('历史记录文件不存在，创建新的记录');
         this.history = new Map();
         await this.save();
+      } else if (error instanceof SyntaxError) {
+        console.warn('历史记录文件损坏或为空，重置记录');
+        this.history = new Map();
+        await this.save();
       } else {
         throw error;
       }
