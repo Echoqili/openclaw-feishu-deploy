@@ -50,7 +50,12 @@ class ImageGenerator {
   async initFonts() {
     try {
       // 分别加载 Regular 和 Bold 中文字体
+      // 优先使用项目内置字体，保证 Vercel 等无系统字体环境也能正常显示中文
+      const bundledRegular = path.join(__dirname, '..', 'assets', 'fonts', 'LXGWWenKai-Regular.ttf');
+      const bundledBold = path.join(__dirname, '..', 'assets', 'fonts', 'LXGWWenKai-Bold.ttf');
+
       const regularFonts = [
+        bundledRegular,
         '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
         '/usr/share/fonts/noto/NotoSansCJK-Regular.ttc',
         '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
@@ -65,6 +70,7 @@ class ImageGenerator {
       ];
 
       const boldFonts = [
+        bundledBold,
         '/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc',
         '/usr/share/fonts/noto/NotoSansCJK-Bold.ttc',
         '/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc',

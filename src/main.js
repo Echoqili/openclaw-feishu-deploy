@@ -14,10 +14,13 @@ const ImageGenerator = require('./image_generator');
 const FeishuSender = require('./feishu_sender');
 const NewsHistory = require('./news_history');
 
+// Vercel Serverless 的文件系统除 /tmp 外只读，统一使用 /tmp 作为工作目录
+const BASE_DIR = process.env.VERCEL ? '/tmp' : '.';
+
 /**
  * 进程锁文件路径
  */
-const LOCK_FILE = path.join(process.env.OUTPUT_DIR || './output', '.news-bot.lock');
+const LOCK_FILE = path.join(process.env.OUTPUT_DIR || path.join(BASE_DIR, 'output'), '.news-bot.lock');
 
 class NewsBot {
   constructor(config = {}) {
@@ -30,7 +33,7 @@ class NewsBot {
       model: config.aiModel
     });
     this.imageGenerator = new ImageGenerator({
-      outputDir: config.outputDir || './output',
+      outputDir: config.outputDir || path.join(BASE_DIR, 'output'),
       maxDisplayItems: config.selectedLimit || 30
     });
     this.sender = new FeishuSender({
@@ -38,7 +41,7 @@ class NewsBot {
       appSecret: config.feishuAppSecret
     });
     this.history = new NewsHistory({
-      historyDir: config.historyDir || './history',
+      historyDir: config.historyDir || path.join(BASE_DIR, 'history'),
       maxHistoryDays: config.maxHistoryDays || 7,
       cloudbaseEnv: config.cloudbaseEnv || null,
       cloudbaseSecretId: config.cloudbaseSecretId || null,
@@ -368,7 +371,7 @@ class NewsBot {
    */
   async saveLog(logData) {
     try {
-      const logDir = './logs';
+      const logDir = path.join(BASE_DIR, 'logs');
       await fs.mkdir(logDir, { recursive: true });
       
       const filename = `news-${new Date().toISOString().split('T')[0]}.json`;
@@ -421,8 +424,8 @@ async function main() {
     // 其他配置
     newsLimit: parseInt(process.env.NEWS_LIMIT || '30'),
     selectedLimit: parseInt(process.env.SELECTED_LIMIT || '30'),
-    outputDir: process.env.OUTPUT_DIR || './output',
-    historyDir: process.env.HISTORY_DIR || './history',
+    outputDir: process.env.OUTPUT_DIR || path.join(BASE_DIR, 'output'),
+    historyDir: process.env.HISTORY_DIR || path.join(BASE_DIR, 'history'),
     maxHistoryDays: parseInt(process.env.MAX_HISTORY_DAYS || '7')
   };
 
