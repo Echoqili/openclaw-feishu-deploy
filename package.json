@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@cloudbase/node-sdk": "^3.18.0",
+    "@vercel/kv": "^1.0.1",
     "axios": "^1.6.0",
     "@napi-rs/canvas": "^0.1.65",
     "cheerio": "^1.0.0-rc.12",

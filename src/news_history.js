@@ -1,11 +1,18 @@
 /**
  * 新闻去重管理模块
  * 记录已发送的新闻，避免重复推送
- * 优先使用 CloudBase 数据库，失败时回退到本地文件
+ * 优先级：CloudBase > Vercel KV > 本地文件
  */
 
 const fs = require('fs').promises;
 const path = require('path');
+
+let createKVClient;
+try {
+  createKVClient = require('@vercel/kv').createClient;
+} catch (e) {
+  createKVClient = null;
+}
 
 class NewsHistory {
   constructor(config = {}) {
@@ -21,6 +28,13 @@ class NewsHistory {
     this.cloudbaseCollection = config.cloudbaseCollection || 'news_history';
     this.db = null;
     this.useCloudBase = false;
+
+    // Vercel KV 配置
+    this.kvUrl = config.kvUrl || process.env.KV_URL || process.env.KV_REST_API_URL || null;
+    this.kvToken = config.kvToken || process.env.KV_REST_API_TOKEN || null;
+    this.kvKey = config.kvKey || process.env.KV_HISTORY_KEY || 'news:history';
+    this.kv = null;
+    this.useVercelKV = false;
   }
 
   /**
@@ -51,6 +65,18 @@ class NewsHistory {
       }
     }
 
+    // 尝试初始化 Vercel KV（优先级次于 CloudBase）
+    if (!this.useCloudBase && !this.useVercelKV && this.kvUrl && this.kvToken && createKVClient) {
+      try {
+        this.kv = createKVClient({ url: this.kvUrl, token: this.kvToken });
+        this.useVercelKV = true;
+        console.log(`✓ Vercel KV 已连接: ${this.kvUrl.replace(/\/[^/]*$/, '/***')}`);
+      } catch (error) {
+        console.warn('⚠ Vercel KV 初始化失败，使用本地文件:', error.message);
+        this.useVercelKV = false;
+      }
+    }
+
     // 加载历史记录
     await this.loadHistory();
     
@@ -64,6 +90,19 @@ class NewsHistory {
    * 加载历史记录（优先CloudBase）
    */
   async loadHistory() {
+    if (this.useVercelKV) {
+      try {
+        const data = await this.kv.get(this.kvKey);
+        if (data && typeof data === 'object') {
+          this.history = new Map(Object.entries(data));
+          console.log(`✓ 从 Vercel KV 加载历史记录: ${this.history.size} 条`);
+          return;
+        }
+      } catch (error) {
+        console.warn('⚠ 从 Vercel KV 加载失败，尝试本地文件:', error.message);
+      }
+    }
+
     if (this.useCloudBase) {
       try {
         // 从 CloudBase 加载
@@ -188,9 +227,18 @@ class NewsHistory {
    * 保存历史记录到本地文件
    */
   async save() {
+    const historyObj = Object.fromEntries(this.history);
+
+    if (this.useVercelKV) {
+      try {
+        await this.kv.set(this.kvKey, historyObj);
+      } catch (error) {
+        console.warn('⚠ 保存到 Vercel KV 失败:', error.message);
+      }
+    }
+
     try {
       await fs.mkdir(this.historyDir, { recursive: true });
-      const historyObj = Object.fromEntries(this.history);
       await fs.writeFile(
         this.historyFile,
         JSON.stringify(historyObj, null, 2),
@@ -244,7 +292,7 @@ class NewsHistory {
       total: this.history.size,
       byCategory: {},
       byDate: {},
-      storage: this.useCloudBase ? 'CloudBase' : 'Local File'
+      storage: this.useCloudBase ? 'CloudBase' : (this.useVercelKV ? 'Vercel KV' : 'Local File')
     };
 
     for (const [key, value] of this.history.entries()) {
