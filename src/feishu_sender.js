@@ -226,7 +226,7 @@ class FeishuSender {
   async sendNewsSummary(receiveId, summaryData, imagePath = null) {
     try {
       // 构建带图片的卡片消息
-      const card = this.buildNewsCard(summaryData, imagePath);
+      const card = await this.buildNewsCard(summaryData, imagePath);
       
       // 发送卡片（只发送一次）
       return await this.sendCardMessage(receiveId, card);
