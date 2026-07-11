@@ -3,7 +3,7 @@
  * 使用 Canvas 生成新闻摘要图片
  */
 
-const { createCanvas, loadImage, registerFont } = require('@napi-rs/canvas');
+const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -73,12 +73,12 @@ class ImageGenerator {
       for (const fontPath of possibleFonts) {
         try {
           await fs.access(fontPath);
-          registerFont(fontPath, { family: 'CustomFont' });
+          GlobalFonts.registerFromPath(fontPath, 'CustomFont');
           console.log(`✓ 加载字体成功: ${fontPath}`);
           fontLoaded = true;
           break;
         } catch (e) {
-          // 字体不存在，继续尝试下一个
+          // 字体不存在或注册失败，继续尝试下一个
         }
       }
 
