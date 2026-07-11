@@ -252,7 +252,10 @@ class FeishuSender {
         elements.push({
           tag: 'img',
           img_key: imageKey,
-          alt: '今日新闻摘要'
+          alt: {
+            tag: 'plain_text',
+            content: '今日新闻摘要'
+          }
         });
       } catch (error) {
         console.error('卡片图片上传失败:', error.message);
@@ -281,7 +284,7 @@ class FeishuSender {
       const importantText = summaryData.importantNews.map((news, index) => {
         shownTitles.add(news.title);
         if (news.link) {
-          return `${index + 1}. <a href="${news.link}">${news.title}</a>`;
+          return `${index + 1}. [${news.title}](${news.link})`;
         }
         return `${index + 1}. ${news.title}`;
       }).join('\n');
@@ -309,7 +312,7 @@ class FeishuSender {
       const newsText = filteredNews.map((news, index) => {
         shownTitles.add(news.title);
         if (news.link) {
-          return `${index + 1}. <a href="${news.link}">${news.title}</a>`;
+          return `${index + 1}. [${news.title}](${news.link})`;
         }
         return `${index + 1}. ${news.title}`;
       }).join('\n');
