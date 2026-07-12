@@ -166,6 +166,9 @@ Vercel Serverless 不支持 `node-cron`，需要外部触发器定时访问 `/ap
 2. 创建新任务：
    - **URL**：`https://your-vercel-domain.vercel.app/api/news`
    - **Schedule**：`30 10,22 * * *`（每天 10:30 和 22:30，北京时间）
+
+   > ⚠️ 注意：URL 必须以 `https://` 开头。使用 `http://` 会被 Vercel 308 强制重定向到 HTTPS，CronJob.org 默认会把这种重定向判定为失败。
+
 3. 保存并启用
 
 ### 备选：GitHub Actions
