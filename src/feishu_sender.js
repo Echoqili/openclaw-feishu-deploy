@@ -403,8 +403,14 @@ class FeishuSender {
    */
   async sendToMultipleChats(chatIds, summaryData, imagePath) {
     const results = [];
-    
-    for (const chatId of chatIds) {
+
+    // 去重保护：避免因环境变量配置重复导致同一群收到多条消息
+    const uniqueChatIds = [...new Set(chatIds)];
+    if (uniqueChatIds.length !== chatIds.length) {
+      console.log(`飞书群ID去重: 原始 ${chatIds.length} 个 -> 去重后 ${uniqueChatIds.length} 个`);
+    }
+
+    for (const chatId of uniqueChatIds) {
       try {
         const result = await this.sendNewsSummary(chatId, summaryData, imagePath);
         results.push({ chatId, success: true, result });
