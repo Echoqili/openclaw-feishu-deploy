@@ -10,8 +10,8 @@ class NewsClassifier {
     // 优先使用通用 AI 配置（NVIDIA 等），未配置时回退到火山引擎兼容配置
     this.apiKey = config.apiKey || process.env.AI_API_KEY || process.env.VOLCANO_API_KEY || '';
     this.apiSecret = config.apiSecret || process.env.AI_API_SECRET || process.env.VOLCANO_API_SECRET || '';
-    this.endpoint = config.endpoint || process.env.AI_ENDPOINT || process.env.VOLCANO_ENDPOINT || 'https://integrate.api.nvidia.com/v1/chat/completions';
-    this.model = config.model || process.env.AI_MODEL || process.env.VOLCANO_MODEL || 'meta/llama-3.1-70b-instruct';
+    this.endpoint = config.endpoint || process.env.AI_ENDPOINT || process.env.VOLCANO_ENDPOINT || 'https://api.deepseek.com/v1/chat/completions';
+    this.model = config.model || process.env.AI_MODEL || process.env.VOLCANO_MODEL || 'deepseek-chat';
     this.batchSize = config.batchSize || parseInt(process.env.CLASSIFY_BATCH_SIZE || '8', 10);
     // AI 不可用熔断标志：鉴权失败等场景下改用关键词规则分类
     this.aiDisabled = false;
