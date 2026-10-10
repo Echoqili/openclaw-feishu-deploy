@@ -173,7 +173,7 @@ class NewsBot {
 
       if (allNewsList.length === 0) {
         console.log('未抓取到新闻，任务结束');
-        return;
+        return { status: 'skipped', reason: '未抓取到新闻' };
       }
 
       // 2. 过滤已发送的新闻（去重），并截取目标条数
@@ -184,7 +184,7 @@ class NewsBot {
 
       if (newNewsList.length === 0) {
         console.log('没有新新闻，任务结束');
-        return;
+        return { status: 'skipped', reason: '没有新新闻' };
       }
 
       // 3. 分类新闻
@@ -199,7 +199,7 @@ class NewsBot {
 
       if (selectedNews.length === 0) {
         console.log('没有符合条件的新闻，任务结束');
-        return;
+        return { status: 'skipped', reason: '没有符合条件的新闻' };
       }
 
       // 5. 生成摘要
@@ -226,7 +226,7 @@ class NewsBot {
         } catch (error) {
           console.error('获取群列表失败:', error.message);
           console.log('跳过推送\n');
-          return;
+          return { status: 'skipped', reason: '获取飞书群列表失败' };
         }
       }
 
@@ -265,6 +265,21 @@ class NewsBot {
       console.log(`新闻统计: 总计 ${allNewsList.length} 条 -> 新增 ${newNewsList.length} 条 -> 精选 ${selectedNews.length} 条`);
       console.log('========================================\n');
 
+      // 返回执行统计（含分类分布），便于调用方远程验证
+      const categoryDistribution = {};
+      selectedNews.forEach(news => {
+        const cat = news.classification?.category || '其他';
+        categoryDistribution[cat] = (categoryDistribution[cat] || 0) + 1;
+      });
+      return {
+        status: 'success',
+        totalNews: allNewsList.length,
+        newNews: newNewsList.length,
+        selectedNews: selectedNews.length,
+        categories: categoryDistribution,
+        aiDisabled: this.classifier.aiDisabled
+      };
+
     } catch (error) {
       console.error('任务执行失败:', error);
       await this.saveLog({
@@ -272,6 +287,7 @@ class NewsBot {
         endTime: new Date().toISOString(),
         error: error.message
       });
+      return { status: 'error', reason: error.message };
     } finally {
       this.isRunning = false;
       // 释放进程锁

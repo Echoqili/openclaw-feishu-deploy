@@ -47,11 +47,12 @@ module.exports = async (req, res) => {
     };
 
     const bot = new NewsBot(config);
-    await bot.run();
+    const result = await bot.run();
 
     return res.status(200).json({
       success: true,
       message: '新闻推送任务执行完成',
+      result: result || null,
       timestamp: new Date().toISOString()
     });
 

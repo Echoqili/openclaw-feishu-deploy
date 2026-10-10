@@ -124,34 +124,29 @@ class ImageGenerator {
   async generateNewsImage(summaryData) {
     try {
       await this.initFonts();
-      
+
       // 确保输出目录存在
       await fs.mkdir(this.outputDir, { recursive: true });
 
-      const canvas = createCanvas(this.width, this.height);
+      // 第一遍：在超尺寸临时画布上布局，计算实际内容高度
+      const scratchHeight = 6000;
+      const scratch = createCanvas(this.width, scratchHeight);
+      const sctx = scratch.getContext('2d');
+      const contentEndY = this.drawContent(sctx, summaryData, scratchHeight);
+
+      // 动态画布高度：内容高度 + 底部留白，最低 1280 防止过矮
+      const finalHeight = Math.min(scratchHeight, Math.max(1280, Math.ceil(contentEndY) + 80));
+      this.height = finalHeight;
+
+      // 第二遍：在最终画布上完整绘制
+      const canvas = createCanvas(this.width, finalHeight);
       const ctx = canvas.getContext('2d');
 
       // 绘制背景
       this.drawBackground(ctx);
 
-      // 绘制标题区域
-      this.drawHeader(ctx, summaryData);
-
-      // 绘制统计信息
-      this.drawStats(ctx, summaryData.stats);
-
-      // 收集已显示的新闻标题
-      const shownTitles = new Set();
-      let currentY = 320;
-
-      // 绘制重要新闻
-      currentY = this.drawImportantNews(ctx, summaryData.importantNews, summaryData.stats.highImportance, shownTitles, currentY);
-
-      // 计算分类新闻剩余展示配额
-      const remainingLimit = this.maxDisplayItems - shownTitles.size;
-
-      // 绘制分类新闻（排除重要新闻）
-      currentY = this.drawCategoryNews(ctx, summaryData.groupedNews, shownTitles, currentY, remainingLimit);
+      // 绘制内容（标题/统计/重要新闻/分类新闻）
+      this.drawContent(ctx, summaryData, finalHeight);
 
       // 绘制底部信息
       this.drawFooter(ctx);
@@ -162,12 +157,38 @@ class ImageGenerator {
       const buffer = canvas.toBuffer('image/png');
       await fs.writeFile(filepath, buffer);
 
-      console.log(`图片生成成功: ${filepath}`);
+      console.log(`图片生成成功: ${filepath}（${this.width}x${finalHeight}）`);
       return filepath;
     } catch (error) {
       console.error('生成图片失败:', error.message);
       throw error;
     }
+  }
+
+  /**
+   * 绘制全部内容，返回内容结束的 Y 坐标（用于动态计算画布高度）
+   */
+  drawContent(ctx, summaryData, canvasHeight) {
+    // 绘制标题区域
+    this.drawHeader(ctx, summaryData);
+
+    // 绘制统计信息
+    this.drawStats(ctx, summaryData.stats);
+
+    // 收集已显示的新闻标题
+    const shownTitles = new Set();
+    let currentY = 320;
+
+    // 绘制重要新闻
+    currentY = this.drawImportantNews(ctx, summaryData.importantNews, summaryData.stats.highImportance, shownTitles, currentY, canvasHeight);
+
+    // 计算分类新闻剩余展示配额
+    const remainingLimit = this.maxDisplayItems - shownTitles.size;
+
+    // 绘制分类新闻（排除重要新闻）
+    currentY = this.drawCategoryNews(ctx, summaryData.groupedNews, shownTitles, currentY, remainingLimit, canvasHeight);
+
+    return currentY;
   }
 
   /**
@@ -259,13 +280,13 @@ class ImageGenerator {
   /**
    * 绘制重要新闻
    */
-  drawImportantNews(ctx, importantNews, totalCount, shownTitles, startY) {
+  drawImportantNews(ctx, importantNews, totalCount, shownTitles, startY, canvasHeight = this.height) {
     if (!importantNews || importantNews.length === 0) return startY;
 
     const padding = 40;
     const cardWidth = this.width - padding * 2;
     let currentY = startY;
-    
+
     // 限制图片上显示的重要新闻数量（不超过总展示上限）
     const displayNews = importantNews.slice(0, this.maxDisplayItems);
     const displayCount = displayNews.length;
@@ -274,16 +295,16 @@ class ImageGenerator {
     ctx.fillStyle = '#FF9800';
     ctx.font = '26px CustomFontBold, CustomFont, Arial, sans-serif';
     ctx.textAlign = 'left';
-    const displayText = displayCount < totalCount 
-      ? `重要新闻 (展示${displayCount}条/共${totalCount}条)` 
+    const displayText = displayCount < totalCount
+      ? `重要新闻 (展示${displayCount}条/共${totalCount}条)`
       : `重要新闻 (${totalCount}条)`;
     ctx.fillText(displayText, padding, currentY);
     currentY += 30;
 
     // 绘制每条重要新闻
     displayNews.forEach((news, index) => {
-      if (currentY > this.height - 120) return; // 防止超出画布
-      
+      if (currentY > canvasHeight - 120) return; // 防止超出画布
+
       shownTitles.add(news.title);
 
       // 序号
@@ -315,29 +336,32 @@ class ImageGenerator {
   /**
    * 绘制分类新闻
    */
-  drawCategoryNews(ctx, groupedNews, shownTitles, startY, remainingLimit = null) {
+  drawCategoryNews(ctx, groupedNews, shownTitles, startY, remainingLimit = null, canvasHeight = this.height) {
     const padding = 40;
     const cardWidth = this.width - padding * 2;
     let currentY = startY;
     let categoryRemaining = remainingLimit ?? this.maxDisplayItems;
+
+    // 显式左对齐（避免继承 drawStats 的居中对齐导致文字溢出画布右侧）
+    ctx.textAlign = 'left';
 
     // 分隔线
     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.fillRect(padding, currentY, cardWidth, 2);
     currentY += 20;
 
-    // 分类新闻
-    const categories = Object.entries(groupedNews);
+    // 分类新闻：按条数从多到少排序，保证重点分类在前
+    const categories = Object.entries(groupedNews).sort((a, b) => b[1].length - a[1].length);
     categories.forEach(([category, newsList]) => {
-      if (currentY > this.height - 150) return;
+      if (currentY > canvasHeight - 150) return;
       if (categoryRemaining <= 0) return;
 
       // 过滤掉已显示的新闻
       const filteredNews = newsList.filter(n => !shownTitles.has(n.title));
       if (filteredNews.length === 0) return;
 
-      // 限制每个分类在图片上显示的数量（最多8条，且不超过剩余配额）
-      const displayNews = filteredNews.slice(0, Math.min(8, categoryRemaining));
+      // 限制每个分类在图片上显示的数量（最多10条，且不超过剩余配额）
+      const displayNews = filteredNews.slice(0, Math.min(10, categoryRemaining));
       const displayCount = displayNews.length;
       categoryRemaining -= displayCount;
       const totalCount = filteredNews.length;
@@ -354,7 +378,7 @@ class ImageGenerator {
 
       // 绘制每条新闻
       displayNews.forEach((news, index) => {
-        if (currentY > this.height - 100) return;
+        if (currentY > canvasHeight - 100) return;
         
         shownTitles.add(news.title);
 
@@ -394,7 +418,7 @@ class ImageGenerator {
     ctx.fillStyle = this.colors.textSecondary;
     ctx.font = '16px CustomFont, CustomFontBold, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('数据来源: ZAKER | 由 AI 自动生成', this.width / 2, this.height - 40);
+    ctx.fillText('数据来源: 新浪新闻/头条热榜/澎湃/百度热搜 | 由 AI 自动生成', this.width / 2, this.height - 40);
   }
 
   /**
@@ -438,20 +462,23 @@ class ImageGenerator {
    */
   truncateText(ctx, text, maxWidth) {
     if (!text) return '';
-    
+
+    const ellipsis = '...';
+    const ellipsisWidth = ctx.measureText(ellipsis).width;
+    // 预留省略号宽度，避免截断后加上省略号反而超出 maxWidth
+    const effectiveMax = maxWidth - ellipsisWidth;
+
     let truncated = text;
     let width = ctx.measureText(truncated).width;
-    
-    while (width > maxWidth && truncated.length > 0) {
+
+    if (width <= maxWidth) return text;
+
+    while (width > effectiveMax && truncated.length > 0) {
       truncated = truncated.substring(0, truncated.length - 1);
       width = ctx.measureText(truncated).width;
     }
-    
-    if (truncated !== text) {
-      truncated += '...';
-    }
-    
-    return truncated;
+
+    return truncated + ellipsis;
   }
 
   /**
