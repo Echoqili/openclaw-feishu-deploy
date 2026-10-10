@@ -164,9 +164,11 @@ class NewsBot {
       // 初始化历史记录
       await this.ensureHistoryInit();
 
-      // 1. 抓取新闻
-      console.log('[1/6] 开始抓取新闻...');
-      const allNewsList = await this.crawler.fetchLatestNews(this.config.newsLimit || 50);
+      // 1. 抓取新闻（超量抓取 3 倍目标量，确保历史去重后仍能满足目标条数）
+      const targetLimit = this.config.newsLimit || 30;
+      const overLimit = Math.max(targetLimit * 3, 90);
+      console.log(`[1/6] 开始抓取新闻（目标 ${targetLimit} 条，超量抓取 ${overLimit} 条）...`);
+      const allNewsList = await this.crawler.fetchLatestNews(overLimit);
       console.log(`抓取到 ${allNewsList.length} 条新闻\n`);
 
       if (allNewsList.length === 0) {
@@ -174,10 +176,11 @@ class NewsBot {
         return;
       }
 
-      // 2. 过滤已发送的新闻（去重）
+      // 2. 过滤已发送的新闻（去重），并截取目标条数
       console.log('[2/6] 过滤已发送新闻...');
-      const newNewsList = this.history.filterUnsent(allNewsList);
-      console.log(`筛选出 ${newNewsList.length} 条新新闻\n`);
+      const unsentList = this.history.filterUnsent(allNewsList);
+      const newNewsList = unsentList.slice(0, targetLimit);
+      console.log(`筛选出 ${unsentList.length} 条新新闻，取前 ${newNewsList.length} 条进行分类\n`);
 
       if (newNewsList.length === 0) {
         console.log('没有新新闻，任务结束');
@@ -290,9 +293,9 @@ class NewsBot {
     const scored = classifiedNews.map(news => {
       const importance = news.classification?.importance || '中';
       const sentiment = news.classification?.sentiment || '中性';
-      
-      const score = 
-        (importanceScore[importance] || 1) * 10 + 
+
+      const score =
+        (importanceScore[importance] || 1) * 10 +
         (sentimentScore[sentiment] || 1) * 5;
 
       return { ...news, score };
@@ -301,29 +304,37 @@ class NewsBot {
     // 按分数排序
     scored.sort((a, b) => b.score - a.score);
 
-    // 选择各分类的代表性新闻（确保多样性）
     const selected = [];
+    const selectedKeys = new Set();
     const categoryCount = {};
-    const maxPerCategory = Math.max(5, Math.ceil(limit / 5)); // 动态上限，保证能选够 limit 条
+    const maxPerCategory = Math.max(5, Math.ceil(limit / 5)); // 动态上限，保证分类多样性
 
-    for (const news of scored) {
-      if (selected.length >= limit) break;
-
+    const trySelect = (news, respectCategoryCap) => {
+      if (selected.length >= limit) return;
+      const key = news.link || news.title;
+      if (selectedKeys.has(key)) return;
       const category = news.classification?.category || '其他';
-      
-      // 确保每个分类不超过最大数量
-      if (!categoryCount[category]) {
-        categoryCount[category] = 0;
-      }
+      if (respectCategoryCap && (categoryCount[category] || 0) >= maxPerCategory) return;
+      selected.push(news);
+      selectedKeys.add(key);
+      categoryCount[category] = (categoryCount[category] || 0) + 1;
+    };
 
-      if (categoryCount[category] < maxPerCategory) {
-        selected.push(news);
-        categoryCount[category]++;
+    // 第一遍：限制每个分类的最大数量，保证分类多样性
+    for (const news of scored) {
+      trySelect(news, true);
+    }
+
+    // 第二遍：若第一遍配额限制导致数量不足，忽略配额补齐到 limit
+    // （避免分类失败时新闻集中到"其他"类被配额截断，最终只剩几条）
+    if (selected.length < limit) {
+      for (const news of scored) {
+        trySelect(news, false);
       }
     }
 
     console.log(`精选新闻分类分布: ${JSON.stringify(categoryCount)}`);
-    
+
     return selected;
   }
 
